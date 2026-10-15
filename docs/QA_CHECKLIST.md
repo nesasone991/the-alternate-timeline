@@ -17,7 +17,7 @@ Last updated: 15 Oct 2026, session 3 (Phase 2, milestone 2).
 | 38802316836 | `a5b5a01` | `npm install` | ✅ | ✅ | ✅ | ✅ | — | Session 2, first real run |
 | 38802782301 | `ea3c62b` | `npm ci` | ✅ | ✅ | ✅ 74/74 | ✅ | — | Session 2, reproducible install |
 | 38805450840 | `c57690c` | `npm ci` failed (new dependency) → `npm install`, lockfile committed as `d375f43` | ✅ | ✅ | ✅ 94/94 | ✅ | ✅ 20/20 | Session 3 milestone; no fixes needed |
-| _see PROJECT_STATE_ | docs commit | `npm ci` from updated lockfile | | | | | | Confirms the updated lockfile installs cleanly |
+| 38805811336 | `60fb0ac` | ✅ `npm ci` from updated lockfile | ✅ | ✅ | ✅ 94/94 | ✅ | ✅ 20/20 | Confirms the updated lockfile installs cleanly |
 
 Vitest breakdown (run 38805450840): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 21/21 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 13/13 · `unit/savegame.test.ts` 11/11 · `unit/settings.test.ts` 8/8.
 
