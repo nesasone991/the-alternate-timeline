@@ -69,7 +69,7 @@ describe('campaign overview', () => {
 });
 
 describe('workspace', () => {
-  it('steps through events and explains unbuilt modes', async () => {
+  it('steps through real events and explains the unbuilt comparison mode', async () => {
     renderAt('/campaigns/fall-of-rome/workspace');
     await screen.findByRole('heading', { level: 1, name: 'The Fall of Rome' });
     const slider = screen.getByRole('slider', { name: 'Year' }) as HTMLInputElement;
@@ -77,9 +77,30 @@ describe('workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next event' }));
     expect(screen.getByRole('heading', { level: 4, name: 'Vandals sack Rome' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Alternate History/ }));
-    expect(screen.getByText('Alternate History is not available yet.')).toBeTruthy();
-    expect(slider.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('tab', { name: /Comparison/ }));
+    expect(screen.getByText('Comparison is not available yet.')).toBeTruthy();
+    expect((screen.getByRole('slider', { name: 'Year' }) as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it('plays decision 1: confirming a choice changes the resources deterministically', async () => {
+    renderAt('/campaigns/fall-of-rome/workspace?mode=alternate');
+    await screen.findByRole('heading', { name: 'Fiscal survival' });
+    expect(screen.getByTestId('resource-economy').textContent).toContain('40');
+
+    const confirm = screen.getByRole('button', { name: 'Confirm decision' }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: /Pay the armies first/ }));
+    expect(confirm.disabled).toBe(false);
+    fireEvent.click(confirm);
+
+    expect(screen.getByRole('heading', { name: 'You chose: Pay the armies first' })).toBeTruthy();
+    expect(screen.getByTestId('resource-military').textContent).toContain('59');
+    expect(screen.getByTestId('resource-economy').textContent).toContain('28');
+    expect(screen.getByTestId('resource-legitimacy').textContent).toContain('34');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+    expect(screen.getByRole('heading', { name: 'Fiscal survival' })).toBeTruthy();
+    expect(screen.getByTestId('resource-economy').textContent).toContain('40');
   });
 });
 

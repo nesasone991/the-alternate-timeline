@@ -31,8 +31,8 @@ export const romeModes: readonly ModeAvailability[] = [
     label: 'Alternate History',
     description:
       'Advise the Western court at five turning points between 455 and 476. Each decision changes your resources, closes some options and opens others.',
-    available: false,
-    limitation: 'Not built yet. The decision engine is the next development phase.',
+    available: true,
+    limitation: 'Early preview: decision 1 of 5 is playable. Decisions 2–5 and the endings are still being written.',
   },
   {
     mode: 'comparison',
@@ -40,7 +40,7 @@ export const romeModes: readonly ModeAvailability[] = [
     description:
       'Place your alternate timeline beside the real one at the same date, with fiction clearly marked apart from sourced history.',
     available: false,
-    limitation: 'Not built yet. Comparison needs both the decision engine and the map.',
+    limitation: 'Not built yet. Comparison needs the full campaign and the map.',
   },
 ];
 
@@ -54,8 +54,8 @@ export const romeFeatures: readonly CampaignFeature[] = [
   {
     id: 'decisions',
     title: 'Five strategic decisions',
-    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476.',
-    status: 'planned',
+    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. The first, fiscal survival, is playable now.',
+    status: 'preview',
     plannedPhase: 2,
   },
   {

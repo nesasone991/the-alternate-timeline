@@ -29,6 +29,10 @@ In `src/data/scenarios/rome/overview.ts`:
 
 All are mainstream positions; each still needs a cited scholarly source.
 
+## Decision 1 framing (added 15 Oct 2026)
+
+The D1 context sentence in `alternate.ts` makes three factual statements, all already covered by the actual timeline: Valentinian III was murdered (16 Mar 455), the Vandals sacked Rome (June 455), North Africa had been in Vandal hands since 439 (with the same "major source of revenue and grain" claim that still needs corroboration). The "senatorial landowners resisting taxation" framing in the tax-reform choice is presented as fiction, but a reviewer should confirm it is not misleading as a general picture of the period.
+
 ## Recommended scholarly references to consult (not yet cited)
 
 These are standard works. They have **not** been read for this project yet and are therefore not cited in the app.

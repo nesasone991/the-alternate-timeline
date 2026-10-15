@@ -1,6 +1,7 @@
 import type { CampaignFeature } from '../../types/campaign';
 import type { Source, Timeline } from '../../types/history';
-import type { ModeAvailability } from '../../types/simulation';
+import type { AlternateScenario, ModeAvailability } from '../../types/simulation';
+import { romeAlternateScenario } from './rome/alternate';
 import { romeActualTimeline, easternContinuityNote } from './rome/history';
 import { romeFeatures, romeModes, romeOverview } from './rome/overview';
 import { romeSources } from './rome/sources';
@@ -13,6 +14,8 @@ export type CampaignContent = {
   readonly counterfactualNotice: string;
   readonly continuityNote?: { readonly text: string; readonly sourceIds: readonly string[] };
   readonly actualTimeline: Timeline;
+  /** Authored fiction. Kept separate from actualTimeline and never derived from it. */
+  readonly alternateScenario?: AlternateScenario;
   readonly sources: readonly Source[];
   readonly modes: readonly ModeAvailability[];
   readonly features: readonly CampaignFeature[];
@@ -26,6 +29,7 @@ const contentById: Readonly<Record<string, CampaignContent>> = {
     counterfactualNotice: romeOverview.counterfactualNotice,
     continuityNote: easternContinuityNote,
     actualTimeline: romeActualTimeline,
+    alternateScenario: romeAlternateScenario,
     sources: romeSources,
     modes: romeModes,
     features: romeFeatures,

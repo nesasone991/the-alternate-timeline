@@ -16,3 +16,12 @@
 | D12 | 2026-10-15 | Channel links left empty in `src/config/brand.ts`; footer hides empty links | Real URLs not supplied; never guess | Owner provides URLs |
 | D13 | 2026-10-15 | Year notation preference (AD/CE) | Brief uses "476 AD", Blueprint uses CE; let the reader choose, default AD | — |
 | D14 | 2026-10-15 | Desktop nav from 1024 px; menu button below | At 768 px the four links plus brand wrapped onto two lines | — |
+| D15 | 2026-10-15 | Engine as pure functions over authored data; no state library | Deterministic, trivially testable, replayable; the UI only needs `useReducer` | Game state must cross routes |
+| D16 | 2026-10-15 | No randomness in the campaign; `seed` kept in state but unused | Brief: no artificial randomness. Blueprint allows seeded random events only if logged | A random event is proposed and approved |
+| D17 | 2026-10-15 | `applyChoice` returns a result object instead of throwing | The UI must explain rejected choices; tests assert specific error kinds | — |
+| D18 | 2026-10-15 | Requirements are a discriminated union (resource minimum, flag, not-flag) | Each requirement means exactly one thing; impossible combinations are type errors | — |
+| D19 | 2026-10-15 | Validator rejects any choice without a negative effect, and any decision whose choices are all gated | Blueprint §6.3–6.4: no free lunch, no softlocks | — |
+| D20 | 2026-10-15 | Each path ends at an `in-development` checkpoint until D2 exists | The graph must always resolve; the UI says plainly where the authored campaign stops | D2 written |
+| D21 | 2026-10-15 | Pre-commit selection with explicit Confirm; Start over is the only undo after that | Blueprint §3.5 | Checkpoints (stretch) |
+| D22 | 2026-10-15 | In Alternate mode, the sourced panel shows "what really happened by" the alternate year | Keeps evidence visible beside fiction without building Comparison early | Phase 4 comparison |
+| D23 | 2026-10-15 | Verification moved to GitHub Actions CI | The dev sandbox cannot reach npm; CI gives a genuine `npm install`/typecheck/lint/test/build | — |

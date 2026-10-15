@@ -21,14 +21,14 @@ export const HOW_IT_WORKS_STEPS: readonly Step[] = [
     summary: 'Step in at a turning point and choose a different course.',
     detail:
       'Every option has a cost. Some require resources you may not have; some close doors that stay closed.',
-    status: 'In development.',
+    status: 'Preview: the first decision of the Fall of Rome is playable.',
   },
   {
     title: 'Simulate the Consequences',
     summary: 'See how your choices ripple forward through the following decades.',
     detail:
       'Outcomes come from authored, deterministic rules — the same choices always produce the same result — so you can trace exactly why things turned out as they did.',
-    status: 'In development.',
+    status: 'Preview: effects are calculated and shown for the first decision.',
   },
   {
     title: 'Compare Both Timelines',

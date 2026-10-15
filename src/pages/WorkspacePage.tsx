@@ -5,16 +5,20 @@ import { Icon } from '../components/ui/Icon';
 import { getCampaignContent, type CampaignContent } from '../data/scenarios';
 import { TimelinePanel } from '../features/history/TimelinePanel';
 import {
+  eventIndexAtYear,
   eventsInYear,
   initialPlaybackState,
   playbackReducer,
   tickInterval,
 } from '../features/history/timelinePlayback';
 import { useSettings } from '../features/settings/useSettings';
+import { DecisionPanel } from '../features/simulation/DecisionPanel';
+import { useSimulation } from '../features/simulation/useSimulation';
 import { InfoPanel } from '../features/workspace/InfoPanel';
 import { MapPlaceholder } from '../features/workspace/MapPlaceholder';
 import { ModeTabs } from '../features/workspace/ModeTabs';
 import { campaignPath, getCampaign, isCampaignSelectable } from '../lib/catalog';
+import { formatYear } from '../lib/dates';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
 import type { CampaignSummary } from '../types/campaign';
 import type { WorkspaceMode } from '../types/simulation';
@@ -59,14 +63,28 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
     if (mode !== 'real') dispatch({ type: 'pause' });
   }, [mode]);
 
-  const focusedEvent = playback.eventIndex >= 0 ? timeline.events[playback.eventIndex] : undefined;
-  const sameYear = focusedEvent ? eventsInYear(timeline, focusedEvent.date.year) : [];
-
   const setMode = (next: WorkspaceMode) => {
     const params = new URLSearchParams(searchParams);
     if (next === 'real') params.delete('mode');
     else params.set('mode', next);
     setSearchParams(params, { replace: true });
+  };
+
+  const scenario = content.alternateScenario;
+  const simulation = useSimulation(scenario);
+  const simState = simulation.ui?.state;
+  const inAlternate = mode === 'alternate' && scenario !== undefined && simState !== undefined;
+
+  // Real History follows the playback cursor. Alternate History shows what really
+  // happened by the alternate timeline's current year, for contrast.
+  const realIndex = inAlternate ? eventIndexAtYear(timeline, simState.year) : playback.eventIndex;
+  const focusedEvent = realIndex >= 0 ? timeline.events[realIndex] : undefined;
+  const sameYear = focusedEvent ? eventsInYear(timeline, focusedEvent.date.year) : [];
+
+  const showHistoricalEvent = (eventId: string) => {
+    const index = timeline.events.findIndex((event) => event.id === eventId);
+    if (index >= 0) dispatch({ type: 'goToEvent', index });
+    setMode('real');
   };
 
   const panelId = 'workspace-panel';
@@ -104,18 +122,44 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
           <div className="flex min-w-0 flex-col gap-5">
-            <div className="min-h-72 sm:min-h-96 lg:h-[30rem]">
-              <MapPlaceholder year={playback.year} era={eraNotation} mode={mode} />
-            </div>
-            <TimelinePanel
-              timeline={timeline}
-              state={playback}
-              dispatch={dispatch}
-              era={eraNotation}
-              disabledReason={
-                mode === 'real' ? undefined : 'Timeline controls work in Real History mode. Switch back to use them.'
-              }
-            />
+            {inAlternate && simulation.ui ? (
+              <>
+                <DecisionPanel
+                  scenario={scenario}
+                  ui={simulation.ui}
+                  era={eraNotation}
+                  historicalEvents={timeline.events}
+                  limitation={modeInfo?.limitation}
+                  onSelect={simulation.select}
+                  onConfirm={simulation.confirm}
+                  onRestart={simulation.restart}
+                  onShowHistoricalEvent={showHistoricalEvent}
+                />
+                <div className="min-h-64">
+                  <MapPlaceholder
+                    year={simState.year}
+                    era={eraNotation}
+                    mode={mode}
+                    positionLabel="Alternate timeline year (fiction)"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="min-h-72 sm:min-h-96 lg:h-[30rem]">
+                  <MapPlaceholder year={playback.year} era={eraNotation} mode={mode} />
+                </div>
+                <TimelinePanel
+                  timeline={timeline}
+                  state={playback}
+                  dispatch={dispatch}
+                  era={eraNotation}
+                  disabledReason={
+                    mode === 'real' ? undefined : 'Timeline controls work in Real History mode. Switch back to use them.'
+                  }
+                />
+              </>
+            )}
           </div>
           <InfoPanel
             mode={mode}
@@ -128,6 +172,10 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
             sources={content.sources}
             era={eraNotation}
             continuityNote={content.continuityNote?.text}
+            historyTitle={
+              inAlternate ? `What really happened by ${formatYear(simState.year, eraNotation)}` : undefined
+            }
+            simulation={inAlternate ? { scenario, state: simState } : undefined}
           />
         </div>
       </div>

@@ -6,13 +6,15 @@ type MapPlaceholderProps = {
   year: number;
   era: EraNotation;
   mode: WorkspaceMode;
+  /** Overrides the label above the year. */
+  positionLabel?: string;
 };
 
 /**
  * Reserved space for the Phase 3 map. Deliberately not a picture of a map: an
  * image here would imply geography the project has not yet sourced.
  */
-export function MapPlaceholder({ year, era, mode }: MapPlaceholderProps) {
+export function MapPlaceholder({ year, era, mode, positionLabel }: MapPlaceholderProps) {
   return (
     <section
       aria-labelledby="map-placeholder-title"
@@ -31,7 +33,7 @@ export function MapPlaceholder({ year, era, mode }: MapPlaceholderProps) {
 
       <p className="my-6 text-center">
         <span className="block font-sans text-xs text-parchment-muted">
-          {mode === 'real' ? 'Timeline position' : 'Real-history position (alternate timeline not built)'}
+          {positionLabel ?? (mode === 'real' ? 'Timeline position' : 'Real-history position (comparison not built)')}
         </span>
         <span className="inscription text-[clamp(2.5rem,7vw,4.5rem)] text-parchment">{formatYear(year, era)}</span>
       </p>

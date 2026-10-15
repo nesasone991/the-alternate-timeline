@@ -17,6 +17,10 @@ Registry in code: `src/data/scenarios/rome/sources.ts`. All accessed 15 Oct 2026
 
 Rules: summaries are original wording; no source text is copied. Tertiary sources are marked in the UI ("Tertiary, needs corroboration") and must be replaced before release (see HISTORICAL_REVIEW.md).
 
+## Alternate-history content (fiction)
+
+`src/data/scenarios/rome/alternate.ts` is authored game content, not historical data. Its decision context sentences restate facts already sourced in the actual timeline (Valentinian III's murder, the 455 sack, the loss of Carthage in 439) and link to those events by id. Choices, resource values, effects and flags are invented and labelled as fiction in every place they appear.
+
 ## Map data
 
 None yet. Every map dataset added in Phase 3 must record here: source, author, licence, attribution text, date accessed, geographic coverage, known inaccuracies, and whether it is sourced geometry or an illustrative schematic. Modern borders must never stand in for ancient ones.

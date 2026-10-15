@@ -1,5 +1,6 @@
 import { campaigns } from '../data/campaigns';
 import { getCampaignContent, listCampaignContentIds } from '../data/scenarios';
+import { validateScenario } from '../features/simulation/validateScenario';
 import { validateCatalog, validateTimeline } from './validation';
 
 /** Every data-integrity problem across the catalog and all campaign content. */
@@ -12,6 +13,13 @@ export function collectDataIntegrityErrors(): string[] {
       errors.push(`Content "${id}" has no catalog entry.`);
     }
     errors.push(...validateTimeline(content.actualTimeline, content.sources));
+    if (content.alternateScenario) {
+      if (content.alternateScenario.campaignId !== id) {
+        errors.push(`Alternate scenario for "${id}" names campaign "${content.alternateScenario.campaignId}".`);
+      }
+      const actualIds = content.actualTimeline.events.map((event) => event.id);
+      errors.push(...validateScenario(content.alternateScenario, actualIds).map((e) => `[${id}] ${e}`));
+    }
   }
   for (const campaign of campaigns) {
     if (campaign.status !== 'coming-soon' && !getCampaignContent(campaign.id)) {
