@@ -9,7 +9,7 @@ Repository: `github.com/nesasone991/the-alternate-timeline` (private). CI runs o
 
 - **Phase 1** — done.
 - **Phase 2, milestones 1–2** (engine, D1, D2, delayed consequences, saves, Playwright) — done.
-- **Phase 2, milestone 3** (Decision 3) — done and verified in CI run 38809509527 (commit `3928ed0`): 115/115 Vitest, 22/22 Playwright, typecheck, lint (0 warnings), build. Details: `docs/QA_CHECKLIST.md`.
+- **Phase 2, milestone 3** (Decision 3) — done and verified in CI run 38809509527 (commit `3928ed0`): 115/115 Vitest, 22/22 Playwright, typecheck, lint (0 warnings), build. A later docs-only run hit an intermittent mobile-menu timeout in an older navigation test; the race was fixed in the app and the test helper, and CI run 38810346645 (commit `6b94b0a`) is green again (115/115, 22/22). Details: `docs/QA_CHECKLIST.md`.
 - **Decision 4 has not been started**, as instructed. It should start only after the owner has reviewed this milestone.
 
 ### Implemented this session
@@ -65,4 +65,4 @@ npm run test:e2e   # Playwright (needs a build and `npx playwright install chrom
 | 1 | 2026-10-15 | Phase 1 foundation and core UI | Sandbox only |
 | 2 | 2026-10-15 | GitHub + CI; engine, validator, D1 | CI: 74/74 tests, build |
 | 3 | 2026-10-15 | D2, delayed consequences, saves, decision UI, Playwright in CI | CI: 94/94 Vitest, 20/20 Playwright, typecheck, lint, build |
-| 4 | 2026-10-15 | D3, 468 consequences before D3, narrative reports, event stream, scenario v3, 27-combination matrix | CI: 115/115 Vitest, 22/22 Playwright, typecheck, lint, build |
+| 4 | 2026-10-15 | D3, 468 consequences before D3, narrative reports, event stream, scenario v3, 27-combination matrix; mobile-menu race fix | CI: 115/115 Vitest, 22/22 Playwright, typecheck, lint, build (run 38810346645) |

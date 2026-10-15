@@ -18,7 +18,9 @@ Last updated: 15 Oct 2026, session 4 (Phase 2, milestone 3 — Decision 3).
 | 38802782301 | `ea3c62b` | `npm ci` | ✅ | ✅ | ✅ 74/74 | ✅ | — | Session 2, reproducible install |
 | 38805450840 | `c57690c` | `npm ci` failed (new dependency) → `npm install`, lockfile committed as `d375f43` | ✅ | ✅ | ✅ 94/94 | ✅ | ✅ 20/20 | Session 3 milestone; no fixes needed |
 | 38805811336 | `60fb0ac` | ✅ `npm ci` from updated lockfile | ✅ | ✅ | ✅ 94/94 | ✅ | ✅ 20/20 | Confirms the updated lockfile installs cleanly |
-| **38809509527** | `3928ed0` | ✅ `npm ci` | ✅ | ✅ | ✅ **115/115** | ✅ | ✅ **22/22** | **Session 4 milestone (Decision 3); passed on the first CI run, no fixes needed** |
+| **38809509527** | `3928ed0` | ✅ `npm ci` | ✅ | ✅ | ✅ **115/115** | ✅ | ✅ **22/22** | **Session 4 milestone (Decision 3); passed on the first CI run** |
+| 38809861059 | `441f225` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ❌ 21/22 | **Intermittent failure** in a session-3 test: *mobile: every header page loads* timed out. Cause: the phone menu closed in an effect one frame after navigation; the test helper sampled the toggle in that frame, skipped opening the menu and waited on a hidden link. Not reproduced in 40 local repeats (faster machine); cause confirmed from the code. |
+| **38810346645** | `6b94b0a` | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ✅ 22/22 | **Fix:** menu links close the menu in the same update as the navigation; the helper waits for `aria-expanded="false"` before opening. Also 66/66 locally (suite ×3). |
 
 Vitest breakdown (run 38809509527): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 22/22 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 24/24 · `unit/savegame.test.ts` 14/14 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 6/6.
 
