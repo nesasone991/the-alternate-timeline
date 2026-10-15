@@ -23,7 +23,7 @@ export function SiteHeader() {
   const location = useLocation();
   const settingsDialog = useSettingsDialog();
 
-  // Close the mobile menu after navigating.
+  // Also close the mobile menu after any other navigation (back button, in-page links).
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
@@ -100,7 +100,13 @@ export function SiteHeader() {
         <ul className="container-page py-2">
           {NAV_ITEMS.map((item) => (
             <li key={item.to}>
-              <NavLink to={item.to} end={item.end} className={(state) => `${navLinkClass(state)} w-full`}>
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={(state) => `${navLinkClass(state)} w-full`}
+                // Close in the same update as the navigation, so the menu never lingers over the new page.
+                onClick={() => setMenuOpen(false)}
+              >
                 {item.label}
               </NavLink>
             </li>

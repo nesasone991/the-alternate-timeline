@@ -5,8 +5,15 @@ export const SAVE_KEY = 'tat.save.rome-alternate';
 
 /** Clicks a main-navigation link, opening the phone menu first when it is collapsed. */
 export async function navigate(page: Page, name: string): Promise<void> {
-  const menu = page.getByRole('button', { name: 'Open menu' });
-  if (await menu.isVisible()) await menu.click();
+  // The phone-layout menu toggle; hidden on desktop.
+  const toggle = page.locator('button[aria-controls="mobile-menu"]');
+  if (await toggle.isVisible()) {
+    // Wait for the menu to be closed after the previous navigation before opening it,
+    // rather than sampling its state once (which raced with the close on slow runners).
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  }
   await page.getByRole('navigation', { name: 'Main' }).filter({ visible: true }).getByRole('link', { name, exact: true }).click();
 }
 
