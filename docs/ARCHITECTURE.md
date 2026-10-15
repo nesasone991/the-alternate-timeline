@@ -91,15 +91,33 @@ Three mechanisms, all authored and all explained to the player — none is a bar
 
 Resolution order is deterministic: due consequences resolve on arrival at the next node, oldest due year first, then in the order they were scheduled. Consequences due after the last written node stay pending (and visible) until a later decision exists.
 
+### Order of events within a year (fixed rule)
+
+A turn at year *Y* always runs in this order:
+
+1. **On arrival**, every consequence with `dueYear ≤ Y` resolves (each condition checked against the state at that moment, in the order above). The resulting state is what the player sees.
+2. **The player decides.** Prerequisites, conditional effects and the projection are all evaluated against the state from step 1.
+3. **On confirm**, the choice's immediate and conditional effects apply and its consequences are scheduled for later years.
+
+So every consequence due in 468 resolves **before** Decision 3 (c. 468) is shown, and its effects are already in the numbers the player decides with. The decision panel states this in an "Order of events in c. 468" box and lists the consequences that have just arrived (including lapsed ones, marked "No effect."). `ResolvedConsequence.resolvedAtNodeId` records which turn a consequence was resolved on.
+
+### Narrative reports
+
+A choice may carry a `ChoiceNarrative`: what was ordered, the effect on the empire (with optional `effectVariants`), stakeholders (`gains` / `loses` / `mixed`, each optionally conditional) and what remains uncertain (with optional variants). `resolveNarrative` picks the **first** matching variant and filters stakeholders using the state **before** the choice — the same state that decides conditional effects — so the text always agrees with the numbers and is deterministic. The resolved text is stored on the `ChoiceRecord`, shown in a "Report to the council" box labelled as invented fiction, and kept in saves implicitly (saves replay choices). The validator requires non-empty text, at least one unconditional `gains` and `loses` group, and valid conditions.
+
+### Event stream for animation (`storyEvents.ts`)
+
+`replayWithEvents(scenario, choiceIds)` returns the same final state as `replay` plus an ordered list of `StoryEvent`s: one `decision` event per choice (year, labels, outcome, resolved narrative, applied effects, flags, map cues) followed by every `consequence` event that resolved on arrival at the next node (triggered or lapsed, explanation, effects, map cues — empty when lapsed). Events have a 1-based `sequence`, non-decreasing years and `fiction: true`. **Map cues** (`emphasis` / `movement` / `pressure`, tone, label) refer only to `SCHEMATIC_REGIONS` (Italy, Sicily, Sardinia–Corsica, Africa, Gaul, Hispania, Illyricum, Constantinople) — named areas, never geometry — so the future map can animate them however Phase 3's data allows, without the content implying borders. No randomness and no clocks: the same choices always produce byte-identical events (tested for all 21 valid D1–D3 paths).
+
 ### Saves
 
-`savegame.ts` writes `{ format, formatVersion, scenarioId, scenarioVersion, savedAt, choices }` to `localStorage` (`tat.save.<scenarioId>`) after each confirmed decision. Loading **replays the choices through the engine**, so a save cannot contain a state the rules can't produce; tampered resources or flags are ignored. Oversized, unparsable, foreign, malformed or rule-breaking saves are `corrupt`; a different format, campaign or scenario version is `incompatible`. Either way the player starts fresh, is told why, and the old save is kept until they discard it or confirm a new decision. Start over deletes the save. Bump `AlternateScenario.version` whenever authored choices change in a way that would change replays.
+`savegame.ts` writes `{ format, formatVersion, scenarioId, scenarioVersion, savedAt, choices }` to `localStorage` (`tat.save.<scenarioId>`) after each confirmed decision. Loading **replays the choices through the engine**, so a save cannot contain a state the rules can't produce; tampered resources or flags are ignored. Oversized, unparsable, foreign, malformed or rule-breaking saves are `corrupt`; a different format, campaign or scenario version is `incompatible`. Either way the player starts fresh, is told why, and the old save is kept until they discard it or confirm a new decision. Start over deletes the save. Bump `AlternateScenario.version` whenever authored choices change in a way that would change replays, and add a `changes` note for it (the validator requires a note for the current version). An older save is refused with an explanation built from those notes — e.g. "The saved game was made with an earlier version of this campaign (version 2; this is version 3). The decisions have changed since then, so your earlier choices cannot be replayed exactly. Version 3: …" — a newer or unlabelled save gets its own message. Current: scenario version 3, state schema version 3.
 
 `validateScenario.ts` checks the graph: unique ids, links resolve, no cycles, no unreachable nodes, 2–4 choices per decision, known resources and flags, valid ranges, **every choice has a downside**, at least one ungated choice per decision (no softlocks), and historical-context links point at real event ids. It runs in the unit tests and at dev startup.
 
 Data separation: `alternate.ts` refers to actual history only by event id (for "set against these sourced events" links). It never imports the actual-history dataset. Both datasets are deep-frozen.
 
-UI: `useSimulation` wraps the engine with a pre-commit selection (change your mind until you confirm; after that, Start over). State lives in the workspace component, so it survives switching tabs; it is not yet saved across reloads (next milestones).
+UI: `useSimulation` wraps the engine with a pre-commit selection (change your mind until you confirm; after that, Start over). State lives in the workspace component, so it survives switching tabs, and is autosaved after each decision (above).
 
 ## Historical Animation Studio (future Creator Mode) — constraints kept now
 
@@ -107,7 +125,7 @@ Creator Mode should grow into a reusable studio for animated historical maps, ca
 
 1. **One clock, as data.** `timelinePlayback.ts` is a pure reducer over years. Any animated scene must be a function of this clock (year plus progress within it), never of CSS or `setTimeout` timing, so a recording is reproducible and seekable.
 2. **Branches are replayable.** `replay(scenario, choiceIds)` reconstructs any alternate timeline exactly — the save format already uses this; a studio shot list can be stored as `{ choiceIds, fromYear, toYear, camera, frame }`.
-3. **Time-indexed outputs.** Actual events, future map snapshots (`MapSnapshot.year`), `ChoiceRecord.year` and `ResolvedConsequence.resolvedYear` all carry years, so a studio can build keyframes ("in 468 the provinces drift") from them.
+3. **Time-indexed outputs.** Actual events, future map snapshots (`MapSnapshot.year`), `ChoiceRecord.year` and `ResolvedConsequence.resolvedYear` all carry years. `replayWithEvents` already turns any choice list into an ordered, deterministic event stream with map cues on schematic regions — the studio's keyframe source ("468: provinces drift — pressure on Gaul and Hispania").
 4. **Contracts exist:** `FramePreset` (1080×1920, 1920×1080), `PlaybackSpeed`, `CaptureOverlay` (`src/types/creator.ts`), `CameraPreset` (`src/types/map.ts`).
 5. **Renderers must take explicit props** (year, camera, layout, overlay) and not read global UI state, so a chrome-free studio route can mount them on their own.
 6. **Rendering stays in the browser** (SVG first; Canvas if performance needs it). Capture is screen recording first; browser-native `canvas.captureStream()` + `MediaRecorder` is a free later option. No server rendering, no paid APIs.

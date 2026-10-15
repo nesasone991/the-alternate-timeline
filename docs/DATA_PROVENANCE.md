@@ -11,6 +11,8 @@ Registry in code: `src/data/scenarios/rome/sources.ts`. All accessed 15 Oct 2026
 | britannica-odoacer | Encyclopaedia Britannica, "Odoacer" — https://www.britannica.com/biography/Odoacer | Reference | 476 |
 | wiki-catalaunian-plains | Wikipedia, "Battle of the Catalaunian Plains" — https://en.wikipedia.org/wiki/Battle_of_the_Catalaunian_Plains | Tertiary | 451 dating and debate |
 | wiki-sack-455 | Wikipedia, "Sack of Rome (455)" — https://en.wikipedia.org/wiki/Sack_of_Rome_(455) | Tertiary | 455 dates |
+| wiki-vandal-war-439-442 | Wikipedia, "Vandal War (439–442)" — https://en.wikipedia.org/wiki/Vandal_War_(439%E2%80%93442) (CC BY-SA; summary in original words) | Tertiary | 442 treaty and the ambiguity of its Numidia terms |
+| wiki-vandal-war-461-468 | Wikipedia, "Vandal War (461–468)" — https://en.wikipedia.org/wiki/Vandal_War_(461%E2%80%93468) (CC BY-SA; summary in original words) | Tertiary | 461 seizure of the islands and raids; Marcellinus retaking Sardinia in 468 |
 | wiki-cape-bon-468 | Wikipedia, "Battle of Cape Bon (468)" — https://en.wikipedia.org/wiki/Battle_of_Cape_Bon_(468) | Tertiary | 468 and the uncertainty of figures |
 | wiki-romulus-augustulus | Wikipedia, "Romulus Augustulus" — https://en.wikipedia.org/wiki/Romulus_Augustulus | Tertiary | 475, 476, 480 |
 | whe-byzantine-empire | M. Cartwright, "Byzantine Empire", World History Encyclopedia — https://www.worldhistory.org/Byzantine_Empire/ | Reference | Eastern continuity to 1453 |
@@ -19,7 +21,7 @@ Rules: summaries are original wording; no source text is copied. Tertiary source
 
 ## Alternate-history content (fiction)
 
-`src/data/scenarios/rome/alternate.ts` is authored game content, not historical data. Its decision context sentences restate facts already sourced in the actual timeline (Valentinian III's murder, the 455 sack, the loss of Carthage in 439) and link to those events by id. Choices, resource values, effects and flags are invented and labelled as fiction in every place they appear.
+`src/data/scenarios/rome/alternate.ts` is authored game content, not historical data. Its decision context sentences restate facts already sourced in the actual timeline (Valentinian III's murder, the 455 sack, the loss of Carthage in 439) and link to those events by id. Choices, resource values, effects and flags are invented and labelled as fiction in every place they appear. Decision 3's context restates the sourced 442 treaty, the 461 raids and the 468 expedition and links to them. Narrative reports (who gains, who loses, what is uncertain) and map cues are fiction: they are labelled "invented for this alternate timeline, not sourced history", cite nothing, and map cues name broad schematic regions only.
 
 ## Map data
 

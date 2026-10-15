@@ -1,6 +1,6 @@
 # QA checklist
 
-Last updated: 15 Oct 2026, session 3 (Phase 2, milestone 2).
+Last updated: 15 Oct 2026, session 4 (Phase 2, milestone 3 — Decision 3).
 
 ## What ran where
 
@@ -18,10 +18,11 @@ Last updated: 15 Oct 2026, session 3 (Phase 2, milestone 2).
 | 38802782301 | `ea3c62b` | `npm ci` | ✅ | ✅ | ✅ 74/74 | ✅ | — | Session 2, reproducible install |
 | 38805450840 | `c57690c` | `npm ci` failed (new dependency) → `npm install`, lockfile committed as `d375f43` | ✅ | ✅ | ✅ 94/94 | ✅ | ✅ 20/20 | Session 3 milestone; no fixes needed |
 | 38805811336 | `60fb0ac` | ✅ `npm ci` from updated lockfile | ✅ | ✅ | ✅ 94/94 | ✅ | ✅ 20/20 | Confirms the updated lockfile installs cleanly |
+| **38809509527** | `3928ed0` | ✅ `npm ci` | ✅ | ✅ | ✅ **115/115** | ✅ | ✅ **22/22** | **Session 4 milestone (Decision 3); passed on the first CI run, no fixes needed** |
 
-Vitest breakdown (run 38805450840): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 21/21 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 13/13 · `unit/savegame.test.ts` 11/11 · `unit/settings.test.ts` 8/8.
+Vitest breakdown (run 38809509527): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 22/22 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 24/24 · `unit/savegame.test.ts` 14/14 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 6/6.
 
-Playwright (run 38805450840), each in **desktop** (1440×900) and **mobile** (Pixel 7):
+Playwright (run 38809509527), each in **desktop** (1440×900) and **mobile** (Pixel 7):
 
 | Spec | Desktop | Mobile |
 | --- | --- | --- |
@@ -30,13 +31,32 @@ Playwright (run 38805450840), each in **desktop** (1440×900) and **mobile** (Pi
 | Buttons, icon buttons and tabs are at least 44 px tall | ✅ | ✅ |
 | Real ↔ Alternate History switching keeps each mode working; Comparison explained and disabled | ✅ | ✅ |
 | Sourced-context link in a decision opens that event in Real History | ✅ | ✅ |
-| Complete D1 and D2 with exact resources; refresh restores; Start over resets and clears the save | ✅ | ✅ |
+| Complete D1, D2 and D3 with exact resources (25/67/21/39 at D3 after the 468 consequence; 18/61/21/45 after joining the expedition); order-of-events box; narrative report; refresh restores everything; Start over resets and clears the save | ✅ | ✅ |
+| A D3 option blocked by earlier choices explains why (Military 49 < 50); a lapsed 468 consequence is shown with "No effect."; treaty report uses the garrisoned-coasts variant | ✅ | ✅ |
 | Changing your mind before confirming changes nothing | ✅ | ✅ |
 | Damaged save: reported, kept until discarded, page keeps working | ✅ | ✅ |
-| Save from an older campaign version refused with a reason | ✅ | ✅ |
+| A real version 2 save is refused: "earlier version of this campaign (version 2; this is version 3)" plus the v3 change note | ✅ | ✅ |
 | Keyboard only: arrow keys select, Enter confirms | ✅ | ✅ |
 
-Build (CI, disk size): main JS 328 kB, workspace chunk 32 kB (lazy), CSS 32 kB.
+Build (CI, disk size): main JS 344 kB, workspace chunk 36 kB (lazy), CSS 36 kB.
+
+## Milestone 3 checks (Decision 3)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| All 27 theoretical D1 × D2 × D3 combinations match an independent reference model exactly (resources at D3, final resources, pending consequences): **21 valid**, **3 blocked at D2** (*pay the armies → field army*: Economy 25 < 30), **3 blocked at D3** (*tax reform → Italy → expedition* and *provinces → Italy → expedition*: Military 49 < 50; *tax reform → federates → treaty*: Legitimacy 12 < 15) | ✅ | CI (unit) |
+| `enumeratePaths` returns exactly the 21 valid paths; each ends at the D4 checkpoint (c. 471) with resources integer and within 0–100, and only post-471 consequences pending | ✅ | CI (unit) |
+| Every consequence due in 468 resolves on arrival at D3 (`resolvedAtNodeId = d3-north-africa`, year 468), before the choice; none due ≤ 468 left pending | ✅ | CI (unit) |
+| Triggered **and** lapsed cases inside Rome: landowners (triggered at Legitimacy 24 and 17, lapsed at 29), provinces drift (triggered after tax/armies + Italy, lapsed with provincial revenue), field-army victories (triggered at Military 56, lapsed at 53); unconditional 468 costs always land | ✅ | CI (unit + Playwright) |
+| Multiple 468 consequences resolve in scheduling order, each against the state at that moment (Legitimacy 24 → 19 → 23) | ✅ | CI (unit) |
+| D2 shapes D3: veterans (field army), garrisoned coasts (Italy), federates and field-army bonuses when fortifying, expedition blocked after Italy + tax/provinces | ✅ | CI (unit + Playwright) |
+| No D3 option dominates another on every resource, from any valid D1–D2 state | ✅ | CI (unit) |
+| Narrative: deterministic for all 21 paths; correct variants (islands at Military ≥ 60, garrisoned coasts, field army); conditional groups only when their condition holds; every report has orders, effect, gains, loses, uncertainty | ✅ | CI (unit + Playwright) |
+| Event stream: decision/consequence order (468 consequences before D3), sequence 1…n, non-decreasing years, all fiction, same state as `replay`, byte-identical on repeat, cues only on known regions, no cues for lapsed consequences, invalid path throws | ✅ | CI (unit) |
+| Saves: all 21 D3 paths round-trip byte-identically; v2 save refused with an explanation including the v3 change note; newer and unlabelled versions get their own messages; blocked D3 path in a save rejected | ✅ | CI (unit + Playwright) |
+| Validator: change note required for the current version; narrative and map-cue checks; Rome passes | ✅ | CI (unit) |
+| Actual-history dataset unchanged after every path | ✅ | CI (unit) |
+| Visual check of D3 turn and report at 1440 px and 360 px (no overflow, readable gains/loses labels) | ✅ | Sandbox screenshots + Playwright overflow check |
 
 ## Milestone 2 checks
 
@@ -73,4 +93,6 @@ npm run test:e2e                  # end-to-end, desktop and mobile
 npm run dev                       # http://localhost:5173/campaigns/fall-of-rome/workspace?mode=alternate
 ```
 
-By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Military 67, Economy 25, Political Unity 27, Legitimacy 39. Refresh: the same state comes back. **Start over**: everything resets.
+By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Decision 3 (c. 468) opens with "Order of events in c. 468" and the provinces-drift consequence already applied (Political Unity 27 → 21); Economy 25, Military 67, Legitimacy 39. Choose **Join the eastern expedition against Carthage** → Economy 18, Military 61, Political Unity 21, Legitimacy 45, and a "Report to the council" marked as fiction. Refresh: the same state comes back. **Start over**: everything resets.
+
+To see the old-save message: in the browser console run `localStorage.setItem('tat.save.rome-alternate', JSON.stringify({format:'the-alternate-timeline/save',formatVersion:1,scenarioId:'rome-alternate',scenarioVersion:2,savedAt:'2026-10-15T20:00:00.000Z',choices:['reform-taxation']}))` and reload.

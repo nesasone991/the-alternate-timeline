@@ -34,3 +34,11 @@
 | D30 | 2026-10-15 | Playwright runs against `vite preview` (production build) in desktop and Pixel 7 projects, no retries | Real bundle and real router; flaky tests must fail visibly | — |
 | D31 | 2026-10-15 | CI updates the lockfile itself when `package.json` gains a dependency | The development sandbox cannot run npm; CI commits the resolved lockfile and the next run proves `npm ci` | A contributor with npm access joins |
 | D32 | 2026-10-15 | One D1–D2 combination is blocked by design (pay the armies → field army) | Makes the D1 trade-off bite in D2; nine combinations validated, eight reachable | Balance review |
+| D33 | 2026-10-15 | Consequences due by a decision's year resolve on arrival, **before** that decision is shown; the UI states the order | The brief asks for an unambiguous sequence; deciding with the post-consequence numbers is how a council would actually experience it | — |
+| D34 | 2026-10-15 | D3 placed at c. 468 (not c. 465 as planned in session 3) | The brief names c. 468 and the sourced Cape Bon expedition; with D33, all 468 consequences now resolve inside the Rome campaign before D3 | — |
+| D35 | 2026-10-15 | Narrative text chosen from the state **before** the choice; first matching variant wins | Same state as conditional effects, so text and numbers always agree; deterministic | — |
+| D36 | 2026-10-15 | Map cues name schematic regions only, never coordinates or borders | Blueprint §9.2: no implied precision before Phase 3 has sourced or schematic geometry | Phase 3 map data |
+| D37 | 2026-10-15 | Scenario version 3; v2 saves refused with a reason built from `changes` notes | Same choice ids now replay to different numbers (D2 balance, 468 consequences); silent reinterpretation would mislead | Next content change |
+| D38 | 2026-10-15 | D1/D2 rebalanced in v3: *field army* gains +3 Military if taxes were reformed; landowners resist reform only if Legitimacy < 28 | Without them, the tax-reform → field-army path had no reward and the landowners' penalty always fired, so the condition never mattered | Playtesting |
+| D39 | 2026-10-15 | Expected results for all 27 D1–D3 combinations come from an independent reference model (a separate calculation, pasted as a table) | Tests should not just re-run the engine against itself | — |
+
