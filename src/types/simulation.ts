@@ -29,23 +29,57 @@ export type Effect = {
 };
 
 /**
- * One condition a choice needs. Exactly one form per requirement:
- * a resource minimum, a flag that must be set, or a flag that must not be set.
+ * One condition. Exactly one form per requirement: a resource at or above a
+ * minimum, a resource below a ceiling, a flag that must be set, or a flag that
+ * must not be set.
  */
 export type Requirement =
-  | { readonly resource: ResourceKey; readonly min: number; readonly flag?: never; readonly notFlag?: never }
-  | { readonly flag: string; readonly resource?: never; readonly min?: never; readonly notFlag?: never }
-  | { readonly notFlag: string; readonly resource?: never; readonly min?: never; readonly flag?: never };
+  | { readonly resource: ResourceKey; readonly min: number; readonly below?: never; readonly flag?: never; readonly notFlag?: never }
+  | { readonly resource: ResourceKey; readonly below: number; readonly min?: never; readonly flag?: never; readonly notFlag?: never }
+  | { readonly flag: string; readonly resource?: never; readonly min?: never; readonly below?: never; readonly notFlag?: never }
+  | { readonly notFlag: string; readonly resource?: never; readonly min?: never; readonly below?: never; readonly flag?: never };
+
+/**
+ * An extra effect that applies only when an earlier decision (or the current
+ * state) makes it apply. Shown to the player before they commit, with the reason.
+ */
+export type ConditionalEffect = {
+  readonly id: string;
+  readonly when: Requirement;
+  readonly effects: readonly Effect[];
+  /** Why the earlier situation changes this outcome. Shown as "Because …". */
+  readonly explanation: string;
+};
+
+/**
+ * A consequence that lands later. Before it is due the player sees only the
+ * hint and the approximate year — never the numbers. When due, the optional
+ * condition is checked against the state at that time; if it fails, the
+ * consequence lapses and the player is told why.
+ */
+export type ScheduledConsequence = {
+  readonly id: string;
+  readonly dueYear: number;
+  readonly hint: string;
+  readonly explanation: string;
+  readonly condition?: Requirement;
+  readonly lapsedExplanation?: string;
+  readonly effects: readonly Effect[];
+};
 
 export type Choice = {
   readonly id: string;
   readonly label: string;
   /** Why an advisor might argue for this — and what it costs. */
   readonly rationale: string;
+  /** Shown after committing: why this strategy produced these results. */
+  readonly outcome: string;
   /** Plain-language note about a later cost or risk, shown before committing. */
   readonly warning?: string;
   readonly prerequisites?: readonly Requirement[];
   readonly effects: readonly Effect[];
+  readonly conditionalEffects?: readonly ConditionalEffect[];
+  readonly consequences?: readonly ScheduledConsequence[];
   readonly flagsSet?: readonly string[];
   readonly nextEventId: string;
 };
@@ -119,16 +153,45 @@ export type AppliedEffect = {
   readonly after: number;
 };
 
+export type AppliedConditional = {
+  readonly id: string;
+  readonly explanation: string;
+  readonly effects: readonly AppliedEffect[];
+};
+
 /** A committed decision: the traceable record behind every later consequence. */
 export type ChoiceRecord = {
   readonly decisionId: string;
   readonly choiceId: string;
   readonly year: number;
+  /** Total immediate change per resource (base effects plus conditional effects). */
   readonly effects: readonly AppliedEffect[];
+  /** The conditional effects that applied, each with its reason. */
+  readonly conditional: readonly AppliedConditional[];
+  /** Ids of consequences this choice scheduled for later. */
+  readonly scheduled: readonly string[];
   readonly flagsSet: readonly string[];
 };
 
-export const SIMULATION_SCHEMA_VERSION = 1;
+export type PendingConsequence = {
+  readonly consequenceId: string;
+  readonly sourceDecisionId: string;
+  readonly sourceChoiceId: string;
+  readonly dueYear: number;
+  readonly hint: string;
+};
+
+export type ResolvedConsequence = PendingConsequence & {
+  /** The node the timeline had reached when this came due. */
+  readonly resolvedAtNodeId: string;
+  readonly resolvedYear: number;
+  /** False when its condition was not met and it lapsed. */
+  readonly triggered: boolean;
+  readonly explanation: string;
+  readonly effects: readonly AppliedEffect[];
+};
+
+export const SIMULATION_SCHEMA_VERSION = 2;
 
 export type SimulationState = {
   readonly schemaVersion: number;
@@ -140,6 +203,10 @@ export type SimulationState = {
   readonly flags: readonly string[];
   readonly choicesMade: readonly string[];
   readonly records: readonly ChoiceRecord[];
+  /** Consequences scheduled by earlier choices and not yet due. */
+  readonly pending: readonly PendingConsequence[];
+  /** Consequences that came due, whether they took effect or lapsed. */
+  readonly resolved: readonly ResolvedConsequence[];
   readonly eventLog: readonly string[];
   /**
    * Reserved for optional random events, which the Blueprint allows only with an

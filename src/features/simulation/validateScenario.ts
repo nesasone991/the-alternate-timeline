@@ -44,10 +44,21 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
   const checkRequirement = (where: string, req: Requirement) => {
     if (req.resource !== undefined) {
       if (!RESOURCE_KEYS.includes(req.resource)) errors.push(`${where}: unknown resource "${req.resource}".`);
-      if (req.min < RESOURCE_MIN || req.min > RESOURCE_MAX) errors.push(`${where}: minimum out of range.`);
+      const bound = req.below ?? req.min;
+      if (bound === undefined || bound < RESOURCE_MIN || bound > RESOURCE_MAX) errors.push(`${where}: threshold out of range.`);
     }
     const flag = req.flag ?? req.notFlag;
     if (flag !== undefined && !flagIds.has(flag)) errors.push(`${where}: unknown flag "${flag}".`);
+  };
+
+  const effectIds = new Set<string>();
+  const checkEffects = (where: string, effects: readonly { resource: string; delta: number }[]) => {
+    for (const effect of effects) {
+      if (!(RESOURCE_KEYS as readonly string[]).includes(effect.resource)) {
+        errors.push(`${where}: unknown resource "${effect.resource}".`);
+      }
+      if (!Number.isInteger(effect.delta)) errors.push(`${where}: effect deltas must be whole numbers.`);
+    }
   };
 
   for (const node of scenario.nodes) {
@@ -65,9 +76,29 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
       choiceIds.add(choice.id);
       if (!nodesById.has(choice.nextEventId)) errors.push(`${cw}: next node "${choice.nextEventId}" does not exist.`);
       if (choice.effects.length === 0) errors.push(`${cw}: has no effects.`);
-      for (const effect of choice.effects) {
-        if (!RESOURCE_KEYS.includes(effect.resource)) errors.push(`${cw}: unknown resource "${effect.resource}".`);
-        if (!Number.isInteger(effect.delta)) errors.push(`${cw}: effect deltas must be whole numbers.`);
+      checkEffects(cw, choice.effects);
+      if (!choice.outcome.trim()) errors.push(`${cw}: needs an outcome explanation.`);
+      for (const item of choice.conditionalEffects ?? []) {
+        const iw = `${cw} / conditional ${item.id}`;
+        if (effectIds.has(item.id)) errors.push(`${iw}: duplicate id.`);
+        effectIds.add(item.id);
+        if (item.effects.length === 0) errors.push(`${iw}: has no effects.`);
+        if (!item.explanation.trim()) errors.push(`${iw}: needs an explanation.`);
+        checkEffects(iw, item.effects);
+        checkRequirement(iw, item.when);
+      }
+      for (const item of choice.consequences ?? []) {
+        const iw = `${cw} / consequence ${item.id}`;
+        if (effectIds.has(item.id)) errors.push(`${iw}: duplicate id.`);
+        effectIds.add(item.id);
+        if (item.dueYear <= node.year) errors.push(`${iw}: must fall due after ${node.year}.`);
+        if (item.effects.length === 0) errors.push(`${iw}: has no effects.`);
+        if (!item.hint.trim() || !item.explanation.trim()) errors.push(`${iw}: needs a hint and an explanation.`);
+        if (item.condition && !item.lapsedExplanation?.trim()) {
+          errors.push(`${iw}: a conditional consequence must explain what happens when it lapses.`);
+        }
+        checkEffects(iw, item.effects);
+        if (item.condition) checkRequirement(iw, item.condition);
       }
       // Blueprint §6.4: no free lunch. Every choice must cost something.
       if (!choice.effects.some((effect) => effect.delta < 0)) errors.push(`${cw}: has no downside.`);

@@ -38,7 +38,7 @@ export function AboutPage() {
           </h2>
           <ul className="prose-atlas mt-4 list-disc space-y-3 pl-5">
             <li>This is an early development build. Only the Fall of Rome campaign can be opened.</li>
-            <li>Only the first of five decisions is playable. The endings, interactive map, comparison view and Creator Mode are not built yet.</li>
+            <li>Only the opening decisions are playable. The endings, interactive map, comparison view and Creator Mode are not built yet.</li>
             <li>
               Historical text is a draft awaiting independent review. Some events currently rely on tertiary
               sources, which are marked and will be corroborated with scholarship before release.

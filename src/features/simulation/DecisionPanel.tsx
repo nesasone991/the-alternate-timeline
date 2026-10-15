@@ -2,10 +2,16 @@ import { useId } from 'react';
 import { FictionBadge } from '../../components/ui/Badges';
 import { formatYear, type EraNotation } from '../../lib/dates';
 import type { HistoricalEvent } from '../../types/history';
-import type { AlternateScenario, ChoiceRecord } from '../../types/simulation';
-import { decisionNumber, evaluateChoices, flagLabel, getCurrentNode, getNode } from './engine';
+import type {
+  AlternateScenario,
+  ChoiceRecord,
+  PendingConsequence,
+  ResolvedConsequence,
+  SimulationState,
+} from '../../types/simulation';
+import { consequencesResolvedAt, decisionNumber, evaluateChoices, flagLabel, getCurrentNode, getNode } from './engine';
 import { AppliedEffectList, EffectChips } from './EffectList';
-import type { SimulationUiState } from './useSimulation';
+import type { SaveNotice, SimulationUiState } from './useSimulation';
 
 type DecisionPanelProps = {
   scenario: AlternateScenario;
@@ -14,9 +20,13 @@ type DecisionPanelProps = {
   /** Actual-history events, used only to label context links. */
   historicalEvents: readonly HistoricalEvent[];
   limitation?: string;
+  notice: SaveNotice | null;
+  saveAvailable: boolean;
   onSelect: (choiceId: string) => void;
   onConfirm: () => void;
   onRestart: () => void;
+  onDiscardSave: () => void;
+  onDismissNotice: () => void;
   onShowHistoricalEvent: (eventId: string) => void;
 };
 
@@ -24,75 +34,264 @@ function yearLabel(year: number, approximate: boolean, era: EraNotation): string
   return `${approximate ? 'c. ' : ''}${formatYear(year, era)}`;
 }
 
-/** The decision turn: context, choices with effects and prerequisites, confirmation, then the consequences. */
-export function DecisionPanel({
-  scenario,
-  ui,
-  era,
-  historicalEvents,
-  limitation,
-  onSelect,
-  onConfirm,
-  onRestart,
-  onShowHistoricalEvent,
-}: DecisionPanelProps) {
+function choiceLabel(scenario: AlternateScenario, decisionId: string, choiceId: string): string {
+  const node = getNode(scenario, decisionId);
+  return node?.kind === 'decision' ? (node.choices.find((c) => c.id === choiceId)?.label ?? choiceId) : choiceId;
+}
+
+/** The decision turn: what carried over, the situation, the options, confirmation and the outcome. */
+export function DecisionPanel(props: DecisionPanelProps) {
+  const { scenario, ui, era, limitation, notice, saveAvailable, onRestart, onDiscardSave, onDismissNotice } = props;
   const headingId = useId();
   const node = getCurrentNode(scenario, ui.state);
   const lastRecord = ui.state.records[ui.state.records.length - 1];
+  const arrivals = consequencesResolvedAt(ui.state, node.id);
 
   return (
-    <section aria-labelledby={headingId} className="border border-dashed border-burgundy-bright/50 bg-night p-4 sm:p-6">
+    <section
+      aria-labelledby={headingId}
+      data-testid="decision-panel"
+      className="border border-dashed border-burgundy-bright/50 bg-night p-4 sm:p-6"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <FictionBadge />
         {limitation ? <p className="font-sans text-xs text-parchment-muted">{limitation}</p> : null}
       </div>
 
+      {notice ? <SaveNoticeBanner notice={notice} onDiscard={onDiscardSave} onDismiss={onDismissNotice} /> : null}
+
       {node.kind === 'decision' ? (
-        <DecisionTurn
-          headingId={headingId}
-          scenario={scenario}
-          ui={ui}
-          era={era}
-          historicalEvents={historicalEvents}
-          onSelect={onSelect}
-          onConfirm={onConfirm}
-          onShowHistoricalEvent={onShowHistoricalEvent}
-        />
+        <>
+          <p className="mt-4 font-sans text-sm text-gold">
+            Decision {decisionNumber(scenario, node.id)} of {scenario.plannedDecisionCount},{' '}
+            {yearLabel(node.year, node.yearApproximate, era)}
+          </p>
+          <h2 id={headingId} className="mt-1 text-[clamp(1.5rem,3.5vw,2rem)] text-parchment">
+            {node.title}
+          </h2>
+          <CarriedOver scenario={scenario} state={ui.state} lastRecord={lastRecord} arrivals={arrivals} era={era} />
+          <DecisionTurn {...props} />
+        </>
       ) : (
-        <div>
+        <>
           {lastRecord ? (
-            <Outcome scenario={scenario} record={lastRecord} era={era} headingId={headingId} />
+            <LastOutcome scenario={scenario} record={lastRecord} era={era} headingId={headingId} prominent />
           ) : (
             <h2 id={headingId} className="mt-4 text-2xl text-parchment">
               {node.title}
             </h2>
           )}
+          {arrivals.length > 0 ? <Arrivals scenario={scenario} items={arrivals} era={era} /> : null}
+          <Pending scenario={scenario} items={ui.state.pending} era={era} />
           <div className="mt-6 border-t border-rule-soft pt-5">
             <p className="font-sans text-sm text-gold">{yearLabel(node.year, node.yearApproximate, era)}</p>
             <h3 className="mt-1 text-xl text-parchment">{node.title}</h3>
             <p className="mt-2 text-parchment-muted">{node.summary}</p>
           </div>
-          <button type="button" className="btn btn-secondary mt-6" onClick={onRestart}>
+        </>
+      )}
+
+      {ui.state.records.length > 0 ? (
+        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-rule-soft pt-5">
+          <button type="button" className="btn btn-secondary" onClick={onRestart}>
             Start over
           </button>
+          <p className="font-sans text-sm text-parchment-muted" data-testid="save-status">
+            {saveAvailable
+              ? 'Progress is saved in this browser after each decision.'
+              : 'This browser is blocking storage, so progress will be lost on refresh.'}
+          </p>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
 
-type DecisionTurnProps = Omit<DecisionPanelProps, 'onRestart' | 'limitation'> & { headingId: string };
+function SaveNoticeBanner({
+  notice,
+  onDiscard,
+  onDismiss,
+}: {
+  notice: SaveNotice;
+  onDiscard: () => void;
+  onDismiss: () => void;
+}) {
+  if (notice.kind === 'restored') {
+    const when = notice.savedAt ? new Date(notice.savedAt) : null;
+    return (
+      <div role="status" className="mt-4 flex flex-wrap items-center justify-between gap-3 border-l-2 border-teal-bright pl-3">
+        <p className="font-sans text-sm">
+          Your progress was restored from this browser
+          {when ? ` (saved ${when.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })})` : ''}.
+        </p>
+        <button type="button" className="btn btn-quiet" onClick={onDismiss}>
+          Dismiss
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div role="alert" className="mt-4 border border-burgundy-bright/60 bg-burgundy/20 p-4">
+      <p className="font-serif text-lg text-parchment">Your saved game could not be loaded.</p>
+      <p className="mt-1 font-sans text-sm">{notice.reason} You are starting a new game.</p>
+      <p className="mt-1 font-sans text-sm text-parchment-muted">
+        The old save is kept until you discard it or confirm a new decision.
+      </p>
+      <button type="button" className="btn btn-secondary mt-3" onClick={onDiscard}>
+        Discard saved game
+      </button>
+    </div>
+  );
+}
 
-function DecisionTurn({
-  headingId,
+/** What the previous decisions established: last outcome, consequences that just arrived, standing flags, what is still to come. */
+function CarriedOver({
   scenario,
-  ui,
+  state,
+  lastRecord,
+  arrivals,
   era,
-  historicalEvents,
-  onSelect,
-  onConfirm,
-  onShowHistoricalEvent,
-}: DecisionTurnProps) {
+}: {
+  scenario: AlternateScenario;
+  state: SimulationState;
+  lastRecord: ChoiceRecord | undefined;
+  arrivals: readonly ResolvedConsequence[];
+  era: EraNotation;
+}) {
+  if (!lastRecord) return null;
+  return (
+    <div className="mt-5 border border-rule/40 bg-ink/40 p-4" data-testid="carried-over">
+      <h3 className="font-sans text-sm font-semibold text-parchment-muted">What carries into this decision</h3>
+      <LastOutcome scenario={scenario} record={lastRecord} era={era} />
+      {arrivals.length > 0 ? <Arrivals scenario={scenario} items={arrivals} era={era} /> : null}
+      {state.flags.length > 0 ? (
+        <div className="mt-4">
+          <p className="font-sans text-xs font-semibold text-parchment-muted">Established by your decisions</p>
+          <ul className="mt-1 space-y-1 text-[0.9375rem]">
+            {state.flags.map((flag) => (
+              <li key={flag} className="border-l-2 border-gold/60 pl-3">
+                {flagLabel(scenario, flag)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <Pending scenario={scenario} items={state.pending} era={era} />
+    </div>
+  );
+}
+
+function LastOutcome({
+  scenario,
+  record,
+  era,
+  headingId,
+  prominent = false,
+}: {
+  scenario: AlternateScenario;
+  record: ChoiceRecord;
+  era: EraNotation;
+  headingId?: string;
+  prominent?: boolean;
+}) {
+  const decision = getNode(scenario, record.decisionId);
+  const choice = decision?.kind === 'decision' ? decision.choices.find((item) => item.id === record.choiceId) : undefined;
+  const label = choice?.label ?? record.choiceId;
+  return (
+    <div className={prominent ? '' : 'mt-3'} data-testid="last-outcome">
+      <p className={`font-sans text-sm text-gold ${prominent ? 'mt-4' : ''}`}>
+        Decision {decisionNumber(scenario, record.decisionId)}
+        {decision ? `, ${decision.title}` : ''}, {yearLabel(record.year, decision?.yearApproximate ?? false, era)}
+      </p>
+      {prominent ? (
+        <h2 id={headingId} className="mt-1 text-[clamp(1.5rem,3.5vw,2rem)] text-parchment">
+          You chose: {label}
+        </h2>
+      ) : (
+        <p className="mt-1 text-lg text-parchment">You chose: {label}</p>
+      )}
+      {choice ? (
+        <p className="mt-2 max-w-[40rem] text-[0.9375rem]">
+          <span className="font-sans text-xs font-semibold text-parchment-muted">Why: </span>
+          {choice.outcome}
+        </p>
+      ) : null}
+      <div className="mt-3 max-w-md">
+        <AppliedEffectList effects={record.effects} />
+      </div>
+      {record.conditional.length > 0 ? (
+        <ul className="mt-2 space-y-1 font-sans text-sm text-parchment-muted">
+          {record.conditional.map((item) => (
+            <li key={item.id}>{item.explanation}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function Arrivals({
+  scenario,
+  items,
+  era,
+}: {
+  scenario: AlternateScenario;
+  items: readonly ResolvedConsequence[];
+  era: EraNotation;
+}) {
+  return (
+    <div className="mt-4" data-testid="arrived-consequences">
+      <p className="font-sans text-xs font-semibold text-parchment-muted">Consequences that have now arrived</p>
+      <ul className="mt-1 space-y-3">
+        {items.map((item) => (
+          <li key={item.consequenceId} className={`border-l-2 pl-3 ${item.triggered ? 'border-gold/70' : 'border-rule'}`}>
+            <span className="block text-[0.9375rem] text-parchment">{item.explanation}</span>
+            <span className="block font-sans text-xs text-parchment-muted">
+              From decision {decisionNumber(scenario, item.sourceDecisionId)}:{' '}
+              {choiceLabel(scenario, item.sourceDecisionId, item.sourceChoiceId)}, {yearLabel(item.resolvedYear, true, era)}
+              {item.triggered ? '' : '. No effect.'}
+            </span>
+            {item.effects.length > 0 ? (
+              <div className="mt-1 max-w-md">
+                <AppliedEffectList effects={item.effects} />
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Pending({
+  scenario,
+  items,
+  era,
+}: {
+  scenario: AlternateScenario;
+  items: readonly PendingConsequence[];
+  era: EraNotation;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-4" data-testid="pending-consequences">
+      <p className="font-sans text-xs font-semibold text-parchment-muted">Still to come</p>
+      <ul className="mt-1 space-y-2">
+        {items.map((item) => (
+          <li key={item.consequenceId} className="border-l-2 border-dashed border-rule pl-3 text-[0.9375rem]">
+            <span className="block">{item.hint}</span>
+            <span className="block font-sans text-xs text-parchment-muted">
+              Expected {yearLabel(item.dueYear, true, era)}, from decision {decisionNumber(scenario, item.sourceDecisionId)}:{' '}
+              {choiceLabel(scenario, item.sourceDecisionId, item.sourceChoiceId)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DecisionTurn({ scenario, ui, era, historicalEvents, onSelect, onConfirm, onShowHistoricalEvent }: DecisionPanelProps) {
   const node = getCurrentNode(scenario, ui.state);
   const radioName = useId();
   const hintId = useId();
@@ -105,13 +304,8 @@ function DecisionTurn({
 
   return (
     <div>
-      <p className="mt-4 font-sans text-sm text-gold">
-        Decision {decisionNumber(scenario, node.id)} of {scenario.plannedDecisionCount}, {yearLabel(node.year, node.yearApproximate, era)}
-      </p>
-      <h2 id={headingId} className="mt-1 text-[clamp(1.5rem,3.5vw,2rem)] text-parchment">
-        {node.title}
-      </h2>
-      <p className="mt-3 max-w-[40rem]">{node.context}</p>
+      <h3 className="mt-6 font-sans text-sm font-semibold text-parchment-muted">The situation</h3>
+      <p className="mt-2 max-w-[40rem]">{node.context}</p>
 
       {contextEvents.length > 0 ? (
         <div className="mt-4">
@@ -138,7 +332,7 @@ function DecisionTurn({
           Pick an option to see its effects. You can change your mind until you confirm.
         </p>
         <div className="mt-4 grid gap-3">
-          {evaluations.map(({ choice, available, requirements, projected }) => {
+          {evaluations.map(({ choice, available, requirements, applicableConditionals, projected }) => {
             const checked = ui.selectedChoiceId === choice.id;
             return (
               <label
@@ -164,13 +358,28 @@ function DecisionTurn({
                   <span className="min-w-0 flex-1">
                     <span className="block text-lg leading-snug text-parchment">{choice.label}</span>
                     <span className="mt-1 block text-[0.9375rem] text-parchment-muted">{choice.rationale}</span>
-                    <span className="mt-3 block">
+
+                    <span className="mt-3 block font-sans text-xs font-semibold text-parchment-muted">Immediately</span>
+                    <span className="mt-1 block">
                       <EffectChips effects={choice.effects} />
                     </span>
+
+                    {applicableConditionals.map((item) => (
+                      <span key={item.id} className="mt-2 block border-l-2 border-gold/60 pl-3">
+                        <span className="block font-sans text-sm text-parchment">{item.explanation}</span>
+                        <span className="mt-1 block">
+                          <EffectChips effects={item.effects} />
+                        </span>
+                      </span>
+                    ))}
+
                     {requirements.length > 0 ? (
                       <span className="mt-3 block font-sans text-sm">
                         {requirements.map((check) => (
-                          <span key={check.description} className={`block ${check.met ? 'text-parchment-muted' : 'text-burgundy-bright'}`}>
+                          <span
+                            key={check.description}
+                            className={`block ${check.met ? 'text-parchment-muted' : 'text-burgundy-bright'}`}
+                          >
                             <span aria-hidden="true">{check.met ? '✓ ' : '✕ '}</span>
                             {check.met ? 'Requirement met: ' : 'Not available: '}
                             {check.description}
@@ -178,15 +387,28 @@ function DecisionTurn({
                         ))}
                       </span>
                     ) : null}
+
+                    {(choice.consequences ?? []).length > 0 ? (
+                      <span className="mt-3 block">
+                        <span className="block font-sans text-xs font-semibold text-parchment-muted">Later</span>
+                        {(choice.consequences ?? []).map((item) => (
+                          <span key={item.id} className="mt-1 block font-sans text-sm text-parchment-muted">
+                            <span className="text-parchment">{yearLabel(item.dueYear, true, era)}:</span> {item.hint}
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+
                     {choice.warning ? (
                       <span className="mt-2 block font-sans text-sm text-parchment-muted">
-                        <span className="font-semibold text-burgundy-bright">Later risk: </span>
+                        <span className="font-semibold text-burgundy-bright">Risk: </span>
                         {choice.warning}
                       </span>
                     ) : null}
+
                     {checked && available ? (
                       <span className="mt-3 block border-t border-rule-soft pt-3">
-                        <span className="block font-sans text-xs font-semibold text-parchment-muted">If you confirm</span>
+                        <span className="block font-sans text-xs font-semibold text-parchment-muted">If you confirm now</span>
                         <span className="mt-1 block">
                           <AppliedEffectList effects={projected} />
                         </span>
@@ -214,46 +436,6 @@ function DecisionTurn({
           {selected ? `Selected: ${selected.choice.label}` : 'No option selected yet.'}
         </p>
       </div>
-    </div>
-  );
-}
-
-function Outcome({
-  scenario,
-  record,
-  era,
-  headingId,
-}: {
-  scenario: AlternateScenario;
-  record: ChoiceRecord;
-  era: EraNotation;
-  headingId: string;
-}) {
-  const decision = getNode(scenario, record.decisionId);
-  const choice = decision?.kind === 'decision' ? decision.choices.find((item) => item.id === record.choiceId) : undefined;
-  return (
-    <div role="status">
-      <p className="mt-4 font-sans text-sm text-gold">
-        Decision {decisionNumber(scenario, record.decisionId)} confirmed, {yearLabel(record.year, decision?.yearApproximate ?? false, era)}
-      </p>
-      <h2 id={headingId} className="mt-1 text-[clamp(1.5rem,3.5vw,2rem)] text-parchment">
-        You chose: {choice?.label ?? record.choiceId}
-      </h2>
-      <div className="mt-4 max-w-md">
-        <AppliedEffectList effects={record.effects} />
-      </div>
-      {record.flagsSet.length > 0 ? (
-        <ul className="mt-4 space-y-2">
-          {record.flagsSet.map((flagId) => (
-            <li key={flagId} className="border-l-2 border-gold/60 pl-3">
-              <span className="block text-parchment">{flagLabel(scenario, flagId)}</span>
-              <span className="block font-sans text-sm text-parchment-muted">
-                {scenario.flags.find((flag) => flag.id === flagId)?.laterEffect}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }

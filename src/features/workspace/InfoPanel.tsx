@@ -10,7 +10,7 @@ import {
   type WorkspaceMode,
 } from '../../types/simulation';
 import { EventEntry } from '../history/EventEntry';
-import { decisionNumber, flagLabel, getNode } from '../simulation/engine';
+import { consequencesResolvedAt, decisionNumber, getNode } from '../simulation/engine';
 import { AppliedEffectList, signed } from '../simulation/EffectList';
 
 type InfoPanelProps = {
@@ -123,6 +123,7 @@ function NotBuilt({ children }: { children: ReactNode }) {
 
 function SimulationSections({ scenario, state }: { scenario: AlternateScenario; state: SimulationState }) {
   const last = state.records[state.records.length - 1];
+  const arrived = consequencesResolvedAt(state, state.currentEventId);
   const written = scenario.nodes.filter((node) => node.kind === 'decision').length;
   return (
     <>
@@ -154,16 +155,27 @@ function SimulationSections({ scenario, state }: { scenario: AlternateScenario; 
       <Section title="Consequences">
         {last ? (
           <>
-            <AppliedEffectList effects={last.effects} />
-            {last.flagsSet.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-[0.9375rem]">
-                {last.flagsSet.map((flag) => (
-                  <li key={flag} className="border-l-2 border-gold/60 pl-3">
-                    {flagLabel(scenario, flag)}
-                  </li>
-                ))}
-              </ul>
+            <p className="font-sans text-xs text-parchment-muted">Your last decision, immediately</p>
+            <div className="mt-1">
+              <AppliedEffectList effects={last.effects} />
+            </div>
+            {arrived.length > 0 ? (
+              <>
+                <p className="mt-3 font-sans text-xs text-parchment-muted">Arrived since then</p>
+                <ul className="mt-1 space-y-1 text-[0.9375rem]">
+                  {arrived.map((item) => (
+                    <li key={item.consequenceId} className="border-l-2 border-gold/60 pl-3">
+                      {item.explanation}
+                    </li>
+                  ))}
+                </ul>
+              </>
             ) : null}
+            <p className="mt-3 font-sans text-xs text-parchment-muted">
+              {state.pending.length === 0
+                ? 'No consequences still to come.'
+                : `${state.pending.length} consequence${state.pending.length === 1 ? '' : 's'} still to come.`}
+            </p>
           </>
         ) : (
           <p className="text-[0.9375rem] text-parchment-muted">Consequences appear here after you confirm a decision.</p>

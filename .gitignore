@@ -6,3 +6,7 @@ coverage
 .env
 .env.*
 .vite
+playwright-report
+test-results
+playwright-results.json
+vitest-results.json

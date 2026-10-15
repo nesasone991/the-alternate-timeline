@@ -1,5 +1,6 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { SETTINGS_STORAGE_KEY } from '../features/settings/settings';
+import { saveKey } from '../features/simulation/savegame';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
 
 export function PrivacyPage() {
@@ -14,6 +15,11 @@ export function PrivacyPage() {
             Your settings (motion, ambient animation, sound, text size and year notation) are saved in this browser’s
             local storage under the key <code className="font-sans text-sm">{SETTINGS_STORAGE_KEY}</code>. They never
             leave your device. Clearing your browser’s site data removes them.
+          </p>
+          <p>
+            When you play an alternate-history campaign, the list of decisions you have confirmed is saved under{' '}
+            <code className="font-sans text-sm">{saveKey('rome-alternate')}</code> so you can continue after a refresh.
+            It contains no personal information. Start over deletes it.
           </p>
           <h2 className="mt-10 text-2xl text-parchment">What is not collected</h2>
           <p>

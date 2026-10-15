@@ -32,7 +32,7 @@ export const romeModes: readonly ModeAvailability[] = [
     description:
       'Advise the Western court at five turning points between 455 and 476. Each decision changes your resources, closes some options and opens others.',
     available: true,
-    limitation: 'Early preview: decision 1 of 5 is playable. Decisions 2–5 and the endings are still being written.',
+    limitation: 'Early preview: the opening decisions are playable. Later decisions and the endings are still being written.',
   },
   {
     mode: 'comparison',
@@ -54,7 +54,7 @@ export const romeFeatures: readonly CampaignFeature[] = [
   {
     id: 'decisions',
     title: 'Five strategic decisions',
-    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. The first, fiscal survival, is playable now.',
+    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. The first two are playable now.',
     status: 'preview',
     plannedPhase: 2,
   },

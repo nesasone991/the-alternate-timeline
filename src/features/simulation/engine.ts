@@ -5,11 +5,16 @@ import {
   RESOURCE_MIN,
   SIMULATION_SCHEMA_VERSION,
   type AlternateScenario,
+  type AppliedConditional,
   type AppliedEffect,
   type Choice,
   type ChoiceRecord,
+  type ConditionalEffect,
   type DecisionEvent,
+  type Effect,
+  type PendingConsequence,
   type Requirement,
+  type ResolvedConsequence,
   type ResourceKey,
   type Resources,
   type ScenarioNode,
@@ -46,6 +51,8 @@ export function createInitialState(scenario: AlternateScenario): SimulationState
     flags: [],
     choicesMade: [],
     records: [],
+    pending: [],
+    resolved: [],
     eventLog: [],
     seed: 0,
   };
@@ -80,11 +87,11 @@ export function checkRequirement(
 ): RequirementCheck {
   if (requirement.resource !== undefined) {
     const have = state.resources[requirement.resource];
-    return {
-      requirement,
-      met: have >= requirement.min,
-      description: `${RESOURCE_LABELS[requirement.resource]} ${requirement.min} or more (you have ${have})`,
-    };
+    const label = RESOURCE_LABELS[requirement.resource];
+    if (requirement.below !== undefined) {
+      return { requirement, met: have < requirement.below, description: `${label} below ${requirement.below} (you have ${have})` };
+    }
+    return { requirement, met: have >= requirement.min, description: `${label} ${requirement.min} or more (you have ${have})` };
   }
   if (requirement.flag !== undefined) {
     return {
@@ -104,7 +111,9 @@ export type ChoiceEvaluation = {
   readonly choice: Choice;
   readonly available: boolean;
   readonly requirements: readonly RequirementCheck[];
-  /** What would happen if this choice were committed now, after clamping. */
+  /** Conditional effects that WOULD apply if committed now, with their reasons. */
+  readonly applicableConditionals: readonly ConditionalEffect[];
+  /** Total change per resource if committed now (base + conditional), after clamping. */
   readonly projected: readonly AppliedEffect[];
 };
 
@@ -113,25 +122,140 @@ export function evaluateChoices(scenario: AlternateScenario, state: SimulationSt
   if (!decision) return [];
   return decision.choices.map((choice) => {
     const requirements = (choice.prerequisites ?? []).map((req) => checkRequirement(scenario, state, req));
+    const applicableConditionals = applicableConditionalEffects(scenario, state, choice);
     return {
       choice,
       available: requirements.every((check) => check.met),
       requirements,
-      projected: applyEffects(state.resources, choice).effects,
+      applicableConditionals,
+      projected: computeImmediate(state.resources, choice, applicableConditionals).total,
     };
   });
 }
 
-function applyEffects(resources: Resources, choice: Choice): { resources: Resources; effects: AppliedEffect[] } {
+/** Conditional effects are judged against the state BEFORE the choice is applied. */
+function applicableConditionalEffects(
+  scenario: AlternateScenario,
+  state: SimulationState,
+  choice: Choice,
+): ConditionalEffect[] {
+  return (choice.conditionalEffects ?? []).filter((item) => checkRequirement(scenario, state, item.when).met);
+}
+
+function applyEffectList(
+  resources: Resources,
+  effects: readonly Effect[],
+): { resources: Resources; applied: AppliedEffect[] } {
   const next: Record<ResourceKey, number> = { ...resources };
-  const effects: AppliedEffect[] = [];
-  for (const effect of choice.effects) {
+  const applied: AppliedEffect[] = [];
+  for (const effect of effects) {
     const before = next[effect.resource];
     const after = clampResource(before + effect.delta);
     next[effect.resource] = after;
-    effects.push({ resource: effect.resource, requested: effect.delta, applied: after - before, before, after });
+    applied.push({ resource: effect.resource, requested: effect.delta, applied: after - before, before, after });
   }
-  return { resources: next, effects };
+  return { resources: next, applied };
+}
+
+/** Sums sequential changes per resource, keeping the first "before" and last "after". */
+export function totalPerResource(effects: readonly AppliedEffect[]): AppliedEffect[] {
+  const order: ResourceKey[] = [];
+  const totals = new Map<ResourceKey, AppliedEffect>();
+  for (const effect of effects) {
+    const existing = totals.get(effect.resource);
+    if (!existing) {
+      order.push(effect.resource);
+      totals.set(effect.resource, { ...effect });
+    } else {
+      totals.set(effect.resource, {
+        resource: effect.resource,
+        requested: existing.requested + effect.requested,
+        applied: existing.applied + effect.applied,
+        before: existing.before,
+        after: effect.after,
+      });
+    }
+  }
+  return order.map((key) => totals.get(key)!);
+}
+
+function computeImmediate(resources: Resources, choice: Choice, conditionals: readonly ConditionalEffect[]) {
+  const base = applyEffectList(resources, choice.effects);
+  let current = base.resources;
+  const conditional: AppliedConditional[] = [];
+  for (const item of conditionals) {
+    const result = applyEffectList(current, item.effects);
+    current = result.resources;
+    conditional.push({ id: item.id, explanation: item.explanation, effects: result.applied });
+  }
+  const all = [...base.applied, ...conditional.flatMap((item) => item.effects)];
+  return { resources: current, conditional, total: totalPerResource(all) };
+}
+
+/**
+ * Resolves every pending consequence due at or before `year`, oldest first.
+ * Each one's condition is checked against the state at that moment.
+ */
+function resolveDue(
+  scenario: AlternateScenario,
+  state: SimulationState,
+  nodeId: string,
+  year: number,
+): SimulationState {
+  const due = state.pending
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.dueYear <= year)
+    .sort((a, b) => a.item.dueYear - b.item.dueYear || a.index - b.index)
+    .map(({ item }) => item);
+  if (due.length === 0) return state;
+
+  let current = state;
+  const resolved: ResolvedConsequence[] = [];
+  for (const pending of due) {
+    const definition = findConsequence(scenario, pending.consequenceId);
+    if (!definition) throw new Error(`Unknown scheduled consequence "${pending.consequenceId}".`);
+    const triggered = definition.condition ? checkRequirement(scenario, current, definition.condition).met : true;
+    let applied: AppliedEffect[] = [];
+    if (triggered) {
+      const result = applyEffectList(current.resources, definition.effects);
+      applied = result.applied;
+      current = { ...current, resources: result.resources };
+    }
+    resolved.push({
+      ...pending,
+      resolvedAtNodeId: nodeId,
+      resolvedYear: year,
+      triggered,
+      explanation: triggered ? definition.explanation : (definition.lapsedExplanation ?? 'This did not come to pass.'),
+      effects: applied,
+    });
+  }
+  const dueIds = new Set(due.map((item) => item.consequenceId));
+  return {
+    ...current,
+    pending: current.pending.filter((item) => !dueIds.has(item.consequenceId)),
+    resolved: [...current.resolved, ...resolved],
+    eventLog: [
+      ...current.eventLog,
+      ...resolved.map((item) => `${item.resolvedYear}: ${item.explanation}`),
+    ],
+  };
+}
+
+export function findConsequence(scenario: AlternateScenario, consequenceId: string) {
+  for (const node of scenario.nodes) {
+    if (node.kind !== 'decision') continue;
+    for (const choice of node.choices) {
+      const found = choice.consequences?.find((item) => item.id === consequenceId);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+/** Consequences that came due when the timeline arrived at the given node. */
+export function consequencesResolvedAt(state: SimulationState, nodeId: string): ResolvedConsequence[] {
+  return state.resolved.filter((item) => item.resolvedAtNodeId === nodeId);
 }
 
 export type ApplyResult =
@@ -157,31 +281,40 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
   const next = getNode(scenario, choice.nextEventId);
   if (!next) throw new Error(`Choice ${choice.id} leads to unknown node "${choice.nextEventId}".`);
 
-  const { resources, effects } = applyEffects(state.resources, choice);
+  const immediate = computeImmediate(state.resources, choice, evaluation.applicableConditionals);
   const newFlags = (choice.flagsSet ?? []).filter((flag) => !state.flags.includes(flag));
+  const scheduled: PendingConsequence[] = (choice.consequences ?? []).map((item) => ({
+    consequenceId: item.id,
+    sourceDecisionId: decision.id,
+    sourceChoiceId: choice.id,
+    dueYear: item.dueYear,
+    hint: item.hint,
+  }));
   const record: ChoiceRecord = {
     decisionId: decision.id,
     choiceId: choice.id,
     year: decision.year,
-    effects,
+    effects: immediate.total,
+    conditional: immediate.conditional,
+    scheduled: scheduled.map((item) => item.consequenceId),
     flagsSet: newFlags,
   };
 
-  return {
-    ok: true,
-    record,
-    state: {
-      ...state,
-      currentEventId: next.id,
-      year: next.year,
-      resources,
-      flags: [...state.flags, ...newFlags],
-      choicesMade: [...state.choicesMade, choice.id],
-      records: [...state.records, record],
-      eventLog: [...state.eventLog, `${decision.title}: ${choice.label}`],
-      endingId: next.kind === 'terminal' && next.status === 'ending' ? next.id : state.endingId,
-    },
+  const committed: SimulationState = {
+    ...state,
+    currentEventId: next.id,
+    year: next.year,
+    resources: immediate.resources,
+    flags: [...state.flags, ...newFlags],
+    choicesMade: [...state.choicesMade, choice.id],
+    records: [...state.records, record],
+    pending: [...state.pending, ...scheduled],
+    eventLog: [...state.eventLog, `${decision.title}: ${choice.label}`],
+    endingId: next.kind === 'terminal' && next.status === 'ending' ? next.id : state.endingId,
   };
+
+  // Arriving at the next point in time: anything now due takes effect (or lapses).
+  return { ok: true, record, state: resolveDue(scenario, committed, next.id, next.year) };
 }
 
 /** Replays a sequence of choices from the start. Throws if any step is invalid. */

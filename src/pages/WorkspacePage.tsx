@@ -130,9 +130,13 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
                   era={eraNotation}
                   historicalEvents={timeline.events}
                   limitation={modeInfo?.limitation}
+                  notice={simulation.notice}
+                  saveAvailable={simulation.saveAvailable}
                   onSelect={simulation.select}
                   onConfirm={simulation.confirm}
                   onRestart={simulation.restart}
+                  onDiscardSave={simulation.discardSave}
+                  onDismissNotice={simulation.dismissNotice}
                   onShowHistoricalEvent={showHistoricalEvent}
                 />
                 <div className="min-h-64">
