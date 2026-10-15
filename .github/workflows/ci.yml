@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -58,7 +58,7 @@ jobs:
               const passed = f.assertionResults.filter(a => a.status === "passed").length;
               return `${name} ${passed}/${f.assertionResults.length}`;
             });
-            console.log(`::notice title=Vitest::${r.numPassedTests} passed, ${r.numFailedTests} failed, ${r.numPendingTests} skipped, ${r.numTotalTests} total in ${r.numTotalTestSuites} files. ` + files.join("; "));
+            console.log(`::notice title=Vitest::${r.numPassedTests} passed, ${r.numFailedTests} failed, ${r.numPendingTests} skipped, ${r.numTotalTests} total in ${r.testResults.length} files. ` + files.join("; "));
           '
 
       - name: Build
