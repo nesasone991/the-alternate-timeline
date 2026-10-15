@@ -9,12 +9,14 @@ import {
   type AppliedEffect,
   type Choice,
   type ChoiceRecord,
+  type ChoiceNarrative,
   type ConditionalEffect,
   type DecisionEvent,
   type Effect,
   type PendingConsequence,
   type Requirement,
   type ResolvedConsequence,
+  type ResolvedNarrative,
   type ResourceKey,
   type Resources,
   type ScenarioNode,
@@ -290,6 +292,7 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
     dueYear: item.dueYear,
     hint: item.hint,
   }));
+  const narrative = choice.narrative ? resolveNarrative(scenario, state, choice.narrative) : undefined;
   const record: ChoiceRecord = {
     decisionId: decision.id,
     choiceId: choice.id,
@@ -298,6 +301,7 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
     conditional: immediate.conditional,
     scheduled: scheduled.map((item) => item.consequenceId),
     flagsSet: newFlags,
+    ...(narrative ? { narrative } : {}),
   };
 
   const committed: SimulationState = {
@@ -315,6 +319,28 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
 
   // Arriving at the next point in time: anything now due takes effect (or lapses).
   return { ok: true, record, state: resolveDue(scenario, committed, next.id, next.year) };
+}
+
+/**
+ * Selects narrative text from the state BEFORE the choice, the same rule as for
+ * conditional effects: the first variant whose condition holds, otherwise the
+ * default; stakeholder lines whose condition holds (or that have none).
+ */
+export function resolveNarrative(
+  scenario: AlternateScenario,
+  state: SimulationState,
+  narrative: ChoiceNarrative,
+): ResolvedNarrative {
+  const pick = (fallback: string, variants: ChoiceNarrative['effectVariants']) =>
+    variants?.find((variant) => checkRequirement(scenario, state, variant.when).met)?.text ?? fallback;
+  return {
+    ordered: narrative.ordered,
+    effect: pick(narrative.effect, narrative.effectVariants),
+    stakeholders: narrative.stakeholders
+      .filter((item) => !item.when || checkRequirement(scenario, state, item.when).met)
+      .map(({ id, group, impact, text }) => ({ id, group, impact, text })),
+    uncertainty: pick(narrative.uncertainty, narrative.uncertaintyVariants),
+  };
 }
 
 /** Replays a sequence of choices from the start. Throws if any step is invalid. */

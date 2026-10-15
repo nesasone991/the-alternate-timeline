@@ -29,6 +29,7 @@ const fixture: AlternateScenario = deepFreeze<AlternateScenario>({
   initialResources: { economy: 95, military: 5, unity: 50, legitimacy: 50 },
   startNodeId: 'a',
   plannedDecisionCount: 2,
+  changes: [{ version: 1, summary: 'Test fixture.' }],
   flags: [
     { id: 'chose-boom', label: 'Boom', laterEffect: 'Unlocks follow-up.' },
     { id: 'chose-bust', label: 'Bust', laterEffect: 'Blocks follow-up.' },
@@ -187,7 +188,7 @@ describe('createInitialState', () => {
     expect(state.records).toEqual([]);
     expect(state.pending).toEqual([]);
     expect(state.resolved).toEqual([]);
-    expect(state.schemaVersion).toBe(2);
+    expect(state.schemaVersion).toBe(3);
     expect(state.seed).toBe(0);
   });
 });
@@ -373,6 +374,10 @@ describe('determinism and immutability', () => {
 describe('validateScenario', () => {
   it('accepts the fixture', () => {
     expect(validateScenario(fixture)).toEqual([]);
+  });
+
+  it('requires a change note for the current version', () => {
+    expect(validateScenario({ ...fixture, version: 2 }).join('\n')).toMatch(/last change note must describe version 2/);
   });
 
   it('reports broken links, missing start, unknown flags, free choices and bad starting values', () => {

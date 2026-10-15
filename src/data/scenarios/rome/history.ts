@@ -34,6 +34,17 @@ const timeline: Timeline = {
       role: 'context',
     },
     {
+      id: 'treaty-442',
+      date: { year: 442, precision: 'year' },
+      title: 'Rome and the Vandals divide North Africa',
+      summary:
+        'A treaty with Gaiseric replaces an earlier agreement of 435. The Vandals keep the richest provinces around Carthage; the Western Empire keeps Tripolitania, the two Mauretanias and part of Numidia.',
+      sourceIds: ['wiki-vandal-war-439-442'],
+      certainty: 'well-attested',
+      caveat: 'The surviving text of the treaty is ambiguous about how part of Numidia was divided.',
+      role: 'context',
+    },
+    {
       id: 'catalaunian-plains-451',
       date: { year: 451, month: 6, precision: 'approximate' },
       title: 'Battle of the Catalaunian Plains',
@@ -68,12 +79,22 @@ const timeline: Timeline = {
       role: 'playable-window',
     },
     {
+      id: 'vandal-raids-461',
+      date: { year: 461, precision: 'year' },
+      title: 'Vandal fleets take the western islands and raid Italy',
+      summary:
+        'After Emperor Majorian is overthrown in 461, Vandal forces seize Corsica, Sardinia and other western islands, and over the following years raid the coasts of Italy and Sicily. The Western court cannot stop them.',
+      sourceIds: ['wiki-vandal-war-461-468'],
+      certainty: 'well-attested',
+      role: 'playable-window',
+    },
+    {
       id: 'cape-bon-468',
       date: { year: 468, precision: 'year' },
       title: 'Expedition against the Vandals fails at Cape Bon',
       summary:
-        'A combined Eastern and Western Roman expedition under Basiliscus sails against Vandal Carthage. A Vandal fireship attack throws the fleet into disorder and the campaign collapses. It was the second major attempt to overthrow Gaiseric, after Majorian’s in 460.',
-      sourceIds: ['britannica-gaiseric', 'wiki-cape-bon-468'],
+        'A combined Eastern and Western Roman expedition under Basiliscus sails against Vandal Carthage. The western contingent under Marcellinus retakes Sardinia, but the main fleet halts near Cape Bon. A Vandal fireship attack throws the fleet into disorder and the campaign collapses. It was the second major attempt to overthrow Gaiseric, after Majorian’s in 460.',
+      sourceIds: ['britannica-gaiseric', 'wiki-cape-bon-468', 'wiki-vandal-war-461-468'],
       certainty: 'well-attested',
       caveat:
         'Ancient figures for the fleet, the army and the cost vary widely and are partly emended by modern scholars; no single figure should be treated as precise.',

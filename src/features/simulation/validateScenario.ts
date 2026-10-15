@@ -1,3 +1,4 @@
+import { SCHEMATIC_REGIONS, type MapCue } from '../../types/map';
 import {
   RESOURCE_KEYS,
   RESOURCE_MAX,
@@ -51,6 +52,22 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
     if (flag !== undefined && !flagIds.has(flag)) errors.push(`${where}: unknown flag "${flag}".`);
   };
 
+  const lastChange = scenario.changes[scenario.changes.length - 1];
+  if (!lastChange || lastChange.version !== scenario.version) {
+    errors.push(`Scenario ${scenario.id}: the last change note must describe version ${scenario.version}.`);
+  }
+
+  const checkCues = (where: string, cues: readonly MapCue[] | undefined) => {
+    for (const cue of cues ?? []) {
+      if (cue.regions.length === 0) errors.push(`${where}: a map cue needs at least one region.`);
+      if (cue.kind === 'movement' && cue.regions.length < 2) errors.push(`${where}: a movement cue needs two or more regions.`);
+      for (const region of cue.regions) {
+        if (!(SCHEMATIC_REGIONS as readonly string[]).includes(region)) errors.push(`${where}: unknown map region "${region}".`);
+      }
+      if (!cue.label.trim()) errors.push(`${where}: a map cue needs a label.`);
+    }
+  };
+
   const effectIds = new Set<string>();
   const checkEffects = (where: string, effects: readonly { resource: string; delta: number }[]) => {
     for (const effect of effects) {
@@ -78,6 +95,27 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
       if (choice.effects.length === 0) errors.push(`${cw}: has no effects.`);
       checkEffects(cw, choice.effects);
       if (!choice.outcome.trim()) errors.push(`${cw}: needs an outcome explanation.`);
+      checkCues(cw, choice.mapCues);
+      if (choice.narrative) {
+        const n = choice.narrative;
+        if (!n.ordered.trim() || !n.effect.trim() || !n.uncertainty.trim()) {
+          errors.push(`${cw}: narrative needs what was ordered, its effect and what remains uncertain.`);
+        }
+        const always = n.stakeholders.filter((item) => !item.when);
+        if (!always.some((item) => item.impact === 'gains') || !always.some((item) => item.impact === 'loses')) {
+          errors.push(`${cw}: narrative must always name at least one group that gains and one that loses.`);
+        }
+        const ids = new Set<string>();
+        for (const item of n.stakeholders) {
+          if (ids.has(item.id)) errors.push(`${cw}: duplicate stakeholder "${item.id}".`);
+          ids.add(item.id);
+          if (item.when) checkRequirement(`${cw} / stakeholder ${item.id}`, item.when);
+        }
+        for (const variant of [...(n.effectVariants ?? []), ...(n.uncertaintyVariants ?? [])]) {
+          checkRequirement(`${cw} / narrative variant`, variant.when);
+          if (!variant.text.trim()) errors.push(`${cw}: empty narrative variant.`);
+        }
+      }
       for (const item of choice.conditionalEffects ?? []) {
         const iw = `${cw} / conditional ${item.id}`;
         if (effectIds.has(item.id)) errors.push(`${iw}: duplicate id.`);
@@ -98,6 +136,7 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
           errors.push(`${iw}: a conditional consequence must explain what happens when it lapses.`);
         }
         checkEffects(iw, item.effects);
+        checkCues(iw, item.mapCues);
         if (item.condition) checkRequirement(iw, item.condition);
       }
       // Blueprint §6.4: no free lunch. Every choice must cost something.

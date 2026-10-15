@@ -23,3 +23,34 @@ export type CameraPreset = {
   readonly center: readonly [number, number];
   readonly zoom: number;
 };
+
+/**
+ * Coarse schematic regions used by alternate-history map cues. They name areas,
+ * not borders: the Phase 3 renderer decides how (and whether) to draw them, and
+ * must label them as illustrative. Never treat these as historical boundaries.
+ */
+export const SCHEMATIC_REGIONS = [
+  'italy',
+  'sicily',
+  'sardinia-corsica',
+  'africa',
+  'gaul',
+  'hispania',
+  'illyricum',
+  'constantinople',
+] as const;
+
+export type SchematicRegionId = (typeof SCHEMATIC_REGIONS)[number];
+
+/**
+ * A hint for a future map animation, authored alongside fictional events.
+ * - `emphasis`: highlight the regions.
+ * - `movement`: something travels from the first region through the rest, in order.
+ * - `pressure`: the regions are under threat or strain.
+ */
+export type MapCue = {
+  readonly kind: 'emphasis' | 'movement' | 'pressure';
+  readonly regions: readonly SchematicRegionId[];
+  readonly tone: 'gain' | 'loss' | 'neutral' | 'uncertain';
+  readonly label: string;
+};

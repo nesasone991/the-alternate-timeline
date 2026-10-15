@@ -76,11 +76,9 @@ export function parseSave(scenario: AlternateScenario, raw: string | null | unde
   if (own(record, 'scenarioId') !== scenario.id) {
     return { status: 'incompatible', reason: 'The saved game belongs to a different campaign.' };
   }
-  if (own(record, 'scenarioVersion') !== scenario.version) {
-    return {
-      status: 'incompatible',
-      reason: 'The saved game was made with an earlier version of this campaign, whose decisions have since changed.',
-    };
+  const savedVersion = own(record, 'scenarioVersion');
+  if (savedVersion !== scenario.version) {
+    return { status: 'incompatible', reason: versionMismatchReason(scenario, savedVersion) };
   }
 
   const choices = own(record, 'choices');
@@ -105,6 +103,24 @@ export function parseSave(scenario: AlternateScenario, raw: string | null | unde
     state,
     savedAt: typeof savedAt === 'string' && !Number.isNaN(Date.parse(savedAt)) ? savedAt : '',
   };
+}
+
+/**
+ * Plain-language explanation for a save from another campaign version, built
+ * from the scenario's change notes so it stays accurate as content changes.
+ */
+export function versionMismatchReason(scenario: AlternateScenario, savedVersion: unknown): string {
+  if (typeof savedVersion !== 'number' || !Number.isInteger(savedVersion)) {
+    return 'The saved game does not say which version of the campaign it was made with, so it cannot be replayed safely.';
+  }
+  if (savedVersion > scenario.version) {
+    return `The saved game was made with version ${savedVersion} of this campaign, which is newer than this site's version ${scenario.version}. Reload the page to get the latest version.`;
+  }
+  const since = scenario.changes
+    .filter((change) => change.version > savedVersion)
+    .map((change) => `Version ${change.version}: ${change.summary}`)
+    .join(' ');
+  return `The saved game was made with an earlier version of this campaign (version ${savedVersion}; this is version ${scenario.version}). The decisions have changed since then, so your earlier choices cannot be replayed exactly. ${since}`.trim();
 }
 
 function storage(): Storage | undefined {

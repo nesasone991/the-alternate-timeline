@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { romeAlternateScenario as rome } from '../../src/data/scenarios/rome/alternate';
 import { romeActualTimeline } from '../../src/data/scenarios/rome/history';
-import { replay } from '../../src/features/simulation/engine';
+import { enumeratePaths, replay } from '../../src/features/simulation/engine';
 import { SAVE_FORMAT, parseSave, saveKey, serializeSave } from '../../src/features/simulation/savegame';
 
 const NOW = new Date('2026-10-15T20:00:00.000Z');
@@ -26,7 +26,7 @@ describe('serializeSave', () => {
       format: SAVE_FORMAT,
       formatVersion: 1,
       scenarioId: 'rome-alternate',
-      scenarioVersion: 2,
+      scenarioVersion: 3,
       savedAt: '2026-10-15T20:00:00.000Z',
       choices: ['reform-taxation', 'hold-italy'],
     });
@@ -39,7 +39,13 @@ describe('serializeSave', () => {
 
 describe('parseSave', () => {
   it('round-trips every reachable path to an identical state', () => {
-    for (const path of [[], ['provincial-revenue'], ['pay-the-armies', 'settle-federates'], ['reform-taxation', 'field-army']]) {
+    for (const path of [
+      [],
+      ['provincial-revenue'],
+      ['pay-the-armies', 'settle-federates'],
+      ['reform-taxation', 'field-army'],
+      ...enumeratePaths(rome),
+    ]) {
       const state = replay(rome, path);
       const loaded = parseSave(rome, serializeSave(rome, state, NOW));
       expect(loaded.status).toBe('restored');
@@ -66,7 +72,34 @@ describe('parseSave', () => {
     expect(older.status).toBe('incompatible');
     if (older.status === 'incompatible') expect(older.reason).toMatch(/earlier version of this campaign/);
     expect(parseSave(rome, saveWith({ formatVersion: 99 })).status).toBe('incompatible');
+    expect(parseSave(rome, saveWith({ scenarioVersion: 2 })).status).toBe('incompatible');
     expect(parseSave(rome, saveWith({ scenarioId: 'napoleon' })).status).toBe('incompatible');
+  });
+
+  it('explains why a version 2 save (Decisions 1–2 only) cannot be loaded', () => {
+    // A real version 2 save: the same choice ids exist, but the rules changed,
+    // so replaying them would silently give different numbers. It is refused.
+    const v2 = parseSave(rome, saveWith({ scenarioVersion: 2, choices: ['reform-taxation', 'field-army'] }));
+    expect(v2.status).toBe('incompatible');
+    if (v2.status !== 'incompatible') return;
+    expect(v2.reason).toContain('earlier version of this campaign (version 2; this is version 3)');
+    expect(v2.reason).toContain('cannot be replayed exactly');
+    expect(v2.reason).toContain('Version 3: Decision 3, North African policy');
+    expect(v2.reason).not.toContain('Version 2:');
+  });
+
+  it('explains newer and unlabelled saves differently', () => {
+    const newer = parseSave(rome, saveWith({ scenarioVersion: 9 }));
+    if (newer.status === 'incompatible') expect(newer.reason).toMatch(/newer than this site's version 3/);
+    else throw new Error('expected incompatible');
+    const unlabelled = parseSave(rome, saveWith({ scenarioVersion: '3' }));
+    if (unlabelled.status === 'incompatible') expect(unlabelled.reason).toMatch(/does not say which version/);
+    else throw new Error('expected incompatible');
+  });
+
+  it('rejects a blocked decision 3 combination', () => {
+    const blocked = parseSave(rome, saveWith({ choices: ['reform-taxation', 'hold-italy', 'join-expedition'] }));
+    expect(blocked.status).toBe('corrupt');
   });
 
   it('rejects malformed or invalid choice lists', () => {

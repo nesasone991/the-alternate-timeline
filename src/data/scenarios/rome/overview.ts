@@ -48,13 +48,13 @@ export const romeFeatures: readonly CampaignFeature[] = [
   {
     id: 'timeline',
     title: 'Sourced historical timeline',
-    description: 'Nine dated events from 410 to 480, each with sources, date precision and caveats.',
+    description: 'Eleven dated events from 410 to 480, each with sources, date precision and caveats.',
     status: 'available',
   },
   {
     id: 'decisions',
     title: 'Five strategic decisions',
-    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. The first two are playable now.',
+    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. The first three are playable now.',
     status: 'preview',
     plannedPhase: 2,
   },

@@ -11,27 +11,36 @@ import type { AlternateScenario } from '../../../types/simulation';
  * Resource values are gameplay abstractions on a 0–100 scale. They are not
  * historical measurements and no number here is claimed to be one.
  *
- * Milestone status: decisions 1 and 2 of 5 are written. Every path ends at an
- * in-development checkpoint where decision 3 will go.
+ * Milestone status: decisions 1–3 of 5 are written. Every path ends at an
+ * in-development checkpoint where decision 4 will go.
  *
  * How consequences carry forward (each with an authored reason, never a bare penalty):
  * - Flags record what was decided; later choices read them as prerequisites or
  *   as conditional effects ("Because you …").
- * - Scheduled consequences fall due in a later year (459, 468, 476). The player
- *   sees the hint and the year in advance, not the numbers. Some only take effect
- *   if a condition holds when they come due; otherwise they lapse, with a reason.
+ * - Scheduled consequences fall due in a later year (459, 468, 472, 476).
  *
- * D1 → D2 links:
- * - Paying the armies first empties the treasury below the 30 needed to fund a
- *   field army (and the armies expect pay again in 459), but makes concentrating
- *   troops in Italy more effective.
- * - Letting the provinces keep revenue makes federate settlements easier to
- *   integrate, and protects provincial loyalty if Italy is garrisoned.
- * - Tax reform yields extra revenue by 459, enough to afford any D2 option.
+ * ORDER OF EVENTS within a year: consequences due by a decision's year take
+ * effect on arrival, BEFORE that decision is shown. So everything due in 468
+ * resolves first, and Decision 3 (c. 468) is made with those results in hand.
+ * The player sees hints and years in advance, never numbers. Some consequences
+ * only take effect if a condition holds when they come due; otherwise they
+ * lapse, with a reason.
+ *
+ * Path matrix (verified in tests/unit/rome-campaign.test.ts): 27 theoretical
+ * D1×D2×D3 combinations; 21 valid; 3 blocked at D2 (paying the armies leaves too
+ * little money for a field army); 3 blocked at D3 (holding Italy without paid
+ * troops leaves Military 49, below the 50 needed for the expedition, twice; tax
+ * reform plus federates leaves Legitimacy 12, below the 15 needed to negotiate).
+ *
+ * Balance adjustments in version 3, each with an in-world reason:
+ * - Tax reform pays for a better-equipped field army (+3 Military), so a strong
+ *   field army can earn its 468 reputation on that path but not on others.
+ * - Landowners turn on the court only below Legitimacy 28: holding Italy
+ *   reassures the Italian elite enough (Legitimacy 29) to keep them quiet.
  */
 export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScenario>({
   id: 'rome-alternate',
-  version: 2,
+  version: 3,
   campaignId: 'fall-of-rome',
   title: 'The Fall of Rome: Can the West Survive?',
   disclaimer:
@@ -44,6 +53,15 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
   },
   startNodeId: 'd1-fiscal-survival',
   plannedDecisionCount: 5,
+  changes: [
+    { version: 1, summary: 'Decision 1, fiscal survival.' },
+    { version: 2, summary: 'Decision 2, border defence, and consequences that arrive in later years.' },
+    {
+      version: 3,
+      summary:
+        'Decision 3, North African policy, and the consequences due in 468. A field army now benefits from tax reform, and landowners only turn against the court if its legitimacy falls below 28.',
+    },
+  ],
   flags: [
     {
       id: 'tax-reform',
@@ -74,6 +92,21 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
       id: 'federates-settled',
       label: 'You settled allies as federates',
       laterEffect: 'Cheap soldiers now; federate leaders with land and power of their own later.',
+    },
+    {
+      id: 'joined-expedition',
+      label: 'You joined the expedition against Carthage',
+      laterEffect: 'Credit for acting, debts to pay, and a Vandal kingdom with reason to retaliate.',
+    },
+    {
+      id: 'vandal-treaty',
+      label: 'You made a treaty with Gaiseric',
+      laterEffect: 'Peace and trade for as long as the treaty holds; resentment in Constantinople.',
+    },
+    {
+      id: 'africa-abandoned',
+      label: 'You gave up Africa and fortified what remained',
+      laterEffect: 'Stronger defences at home; the sea left to the Vandal fleet.',
     },
   ],
   nodes: [
@@ -114,7 +147,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
               id: 'tax-reform-landowners',
               dueYear: 468,
               hint: 'If the court’s authority weakens, landowners who lost their exemptions may back its rivals.',
-              condition: { resource: 'legitimacy', below: 30 },
+              condition: { resource: 'legitimacy', below: 28 },
               explanation: 'With the court’s authority weak, landowners who lost their exemptions backed its rivals.',
               lapsedExplanation:
                 'The court stayed strong enough that the landowners’ resentment never turned into open opposition.',
@@ -122,6 +155,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             },
           ],
           flagsSet: ['tax-reform'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'gain', label: 'Tax reform in the heartland' }],
           nextEventId: 'd2-border-defence',
         },
         {
@@ -147,6 +181,9 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             },
           ],
           flagsSet: ['provincial-revenue'],
+          mapCues: [
+            { kind: 'emphasis', regions: ['gaul', 'hispania', 'illyricum'], tone: 'gain', label: 'Provinces keep a share of revenue' },
+          ],
           nextEventId: 'd2-border-defence',
         },
         {
@@ -173,6 +210,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             },
           ],
           flagsSet: ['armies-paid-first'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'neutral', label: 'The armies are paid first' }],
           nextEventId: 'd2-border-defence',
         },
       ],
@@ -216,13 +254,18 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
               hint: 'Provinces without imperial troops may drift towards local strongmen.',
               condition: { notFlag: 'provincial-revenue' },
               explanation: 'Years without imperial armies beyond the Alps loosened the provinces’ loyalty to the court.',
+              mapCues: [{ kind: 'pressure', regions: ['gaul', 'hispania'], tone: 'loss', label: 'Provincial loyalty weakens' }],
               lapsedExplanation:
                 'Because the provinces kept a share of their revenue, local elites could pay for their own defence and stayed loyal.',
               effects: [{ resource: 'unity', delta: -6 }],
             },
           ],
           flagsSet: ['italy-garrisoned'],
-          nextEventId: 'checkpoint-d3',
+          mapCues: [
+            { kind: 'movement', regions: ['gaul', 'italy'], tone: 'neutral', label: 'Armies withdraw to Italy' },
+            { kind: 'pressure', regions: ['gaul', 'hispania'], tone: 'uncertain', label: 'Provinces left to defend themselves' },
+          ],
+          nextEventId: 'd3-north-africa',
         },
         {
           id: 'field-army',
@@ -238,6 +281,15 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             { resource: 'unity', delta: 4 },
             { resource: 'economy', delta: -10 },
           ],
+          conditionalEffects: [
+            {
+              id: 'field-army-funded',
+              when: { flag: 'tax-reform' },
+              explanation:
+                'Because you reformed taxation, steady revenue pays for proper equipment and the field army starts stronger.',
+              effects: [{ resource: 'military', delta: 3 }],
+            },
+          ],
           consequences: [
             {
               id: 'field-army-upkeep',
@@ -252,12 +304,14 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
               hint: 'If the army stays strong, its successes may strengthen the court’s authority.',
               condition: { resource: 'military', min: 55 },
               explanation: 'A strong field army won enough engagements to lend the court real authority.',
+              mapCues: [{ kind: 'emphasis', regions: ['gaul', 'italy'], tone: 'gain', label: 'The field army’s successes' }],
               lapsedExplanation: 'The field army was never strong enough to win the reputation the court hoped for.',
               effects: [{ resource: 'legitimacy', delta: 4 }],
             },
           ],
           flagsSet: ['field-army'],
-          nextEventId: 'checkpoint-d3',
+          mapCues: [{ kind: 'movement', regions: ['italy', 'gaul'], tone: 'gain', label: 'A field army that can march where needed' }],
+          nextEventId: 'd3-north-africa',
         },
         {
           id: 'settle-federates',
@@ -293,19 +347,261 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             },
           ],
           flagsSet: ['federates-settled'],
-          nextEventId: 'checkpoint-d3',
+          mapCues: [{ kind: 'emphasis', regions: ['gaul', 'hispania'], tone: 'uncertain', label: 'Allies settled as federates' }],
+          nextEventId: 'd3-north-africa',
+        },
+      ],
+    },
+    {
+      kind: 'decision',
+      id: 'd3-north-africa',
+      year: 468,
+      yearApproximate: true,
+      title: 'North African policy',
+      context:
+        'Africa has been divided by treaty since 442, with the richest provinces around Carthage in Vandal hands. Since 461 Vandal fleets have held the western islands and raided the coasts of Italy and Sicily. Now Constantinople is preparing a great expedition against Carthage and wants the West to take part. Your council must decide what Africa is still worth.',
+      historicalContextIds: ['treaty-442', 'vandal-raids-461', 'cape-bon-468'],
+      prompt: 'What should the empire do about Vandal Africa?',
+      choices: [
+        {
+          id: 'join-expedition',
+          label: 'Join the eastern expedition against Carthage',
+          rationale:
+            'Commit the West’s ships and soldiers to the campaign Constantinople is preparing. If Carthage falls, Africa’s revenue could return to the empire; if the campaign fails, the losses will be hard to replace.',
+          outcome:
+            'Western ships and soldiers sailed with the eastern fleet. The court won credit for acting boldly, and the treasury and the army paid for it.',
+          warning: 'A great expedition is costly whether or not it succeeds.',
+          prerequisites: [{ resource: 'military', min: 50 }],
+          effects: [
+            { resource: 'economy', delta: -12 },
+            { resource: 'military', delta: -6 },
+            { resource: 'legitimacy', delta: 6 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'expedition-veterans',
+              when: { flag: 'field-army' },
+              explanation: 'Because you built a mobile field army, experienced troops embark and fewer are lost.',
+              effects: [{ resource: 'military', delta: 4 }],
+            },
+            {
+              id: 'expedition-islands',
+              when: { resource: 'military', min: 60 },
+              explanation:
+                'Because your army is strong enough to spare a second force, it also secures the islands near Italy, and some of their revenue returns.',
+              effects: [{ resource: 'economy', delta: 5 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'expedition-debts',
+              dueYear: 472,
+              hint: 'A campaign on this scale leaves debts that will have to be paid.',
+              explanation: 'Debts from the expedition fell due and strained the treasury.',
+              effects: [{ resource: 'economy', delta: -5 }],
+            },
+            {
+              id: 'expedition-reprisal',
+              dueYear: 476,
+              hint: 'If the empire’s forces are worn down, the Vandals may take revenge on the coasts of Italy and Sicily.',
+              condition: { resource: 'military', below: 55 },
+              explanation: 'With the empire’s forces depleted, Vandal fleets struck back at Italy and Sicily.',
+              lapsedExplanation: 'The empire’s forces stayed strong enough to deter Vandal reprisals.',
+              effects: [{ resource: 'unity', delta: -5 }],
+              mapCues: [{ kind: 'movement', regions: ['africa', 'sicily', 'italy'], tone: 'loss', label: 'Vandal reprisals' }],
+            },
+          ],
+          flagsSet: ['joined-expedition'],
+          mapCues: [
+            { kind: 'movement', regions: ['italy', 'sicily', 'africa'], tone: 'uncertain', label: 'The western contingent sails for Carthage' },
+            { kind: 'movement', regions: ['constantinople', 'africa'], tone: 'uncertain', label: 'The eastern fleet' },
+          ],
+          narrative: {
+            ordered:
+              'You ordered the western fleet, and every soldier who could be spared, to join Constantinople’s expedition against Carthage.',
+            effect:
+              'The empire has staked much of its remaining strength on one campaign. The court’s standing rose with the decision, but the treasury and the army are both thinner for it, and Carthage itself is still beyond the West’s reach.',
+            effectVariants: [
+              {
+                when: { resource: 'military', min: 60 },
+                text: 'The empire has staked much of its remaining strength on one campaign. With forces to spare, a second western force secured the islands near Italy and some of their revenue returned — but Carthage itself is still beyond the West’s reach.',
+              },
+            ],
+            stakeholders: [
+              { id: 'army', group: 'The army', impact: 'mixed', text: 'Soldiers gain pay and purpose, but many will not come back.' },
+              { id: 'eastern-court', group: 'The eastern court', impact: 'gains', text: 'Constantinople gains a committed partner in its campaign.' },
+              { id: 'taxpayers', group: 'Taxpayers in Italy', impact: 'loses', text: 'The cost of ships, pay and supplies falls on them.' },
+              {
+                id: 'veterans',
+                group: 'Veterans of the field army',
+                impact: 'gains',
+                text: 'Their experience makes them the backbone of the western force.',
+                when: { flag: 'field-army' },
+              },
+            ],
+            uncertainty:
+              'Whether Carthage can be taken is not settled here. What the campaign finally achieves — and whether the Vandals retaliate — depends on what comes next.',
+          },
+          nextEventId: 'checkpoint-d4',
+        },
+        {
+          id: 'treaty-with-gaiseric',
+          label: 'Negotiate a treaty with Gaiseric',
+          rationale:
+            'Accept that the Vandals hold Africa and bargain for an end to the raids and the right to trade across the sea. Peace and grain may follow, but the court will be seen to give up Roman provinces, and Constantinople may resent a separate peace.',
+          outcome:
+            'The court accepted Vandal rule in Africa in exchange for peace at sea and trade. Coastal towns breathed easier; many in Rome saw it as surrender.',
+          warning: 'Needs enough standing to be taken seriously, and a treaty is only as strong as the force behind it.',
+          prerequisites: [{ resource: 'legitimacy', min: 15 }],
+          effects: [
+            { resource: 'economy', delta: 8 },
+            { resource: 'unity', delta: 2 },
+            { resource: 'legitimacy', delta: -8 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'treaty-garrisoned-coasts',
+              when: { flag: 'italy-garrisoned' },
+              explanation:
+                'Because Italy’s coasts are garrisoned, Gaiseric gains less from raiding and accepts better terms.',
+              effects: [{ resource: 'economy', delta: 4 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'treaty-eastern-resentment',
+              dueYear: 472,
+              hint: 'Constantinople may resent a western peace made without it.',
+              explanation: 'The eastern court resented the separate peace, and the West’s standing suffered.',
+              effects: [{ resource: 'legitimacy', delta: -4 }],
+            },
+            {
+              id: 'treaty-holds',
+              dueYear: 472,
+              hint: 'A treaty lasts only as long as breaking it looks more costly than keeping it.',
+              condition: { resource: 'military', min: 50 },
+              explanation: 'Backed by a credible army, the treaty held and trade across the sea continued.',
+              lapsedExplanation: 'Without a credible army behind it, Vandal raiders soon ignored the treaty.',
+              effects: [{ resource: 'economy', delta: 4 }],
+              mapCues: [{ kind: 'movement', regions: ['africa', 'sicily', 'italy'], tone: 'gain', label: 'Trade across the sea' }],
+            },
+          ],
+          flagsSet: ['vandal-treaty'],
+          mapCues: [
+            { kind: 'emphasis', regions: ['africa'], tone: 'neutral', label: 'Vandal rule in Africa accepted' },
+            { kind: 'movement', regions: ['italy', 'africa'], tone: 'uncertain', label: 'Envoys to Carthage' },
+          ],
+          narrative: {
+            ordered:
+              'You sent envoys to Carthage to accept Vandal rule over Roman Africa, in exchange for peace at sea and the right to trade.',
+            effect:
+              'The raids may ease and grain may cross the sea again, but the court has formally given up provinces it once ruled, and its standing in Rome fell.',
+            effectVariants: [
+              {
+                when: { flag: 'italy-garrisoned' },
+                text: 'Garrisoned coasts gave your envoys leverage: raiding Italy had become costly, so Gaiseric accepted better terms. Even so, the court has formally given up provinces it once ruled, and its standing in Rome fell.',
+              },
+            ],
+            stakeholders: [
+              { id: 'coastal-towns', group: 'Coastal towns of Italy and Sicily', impact: 'gains', text: 'They may be spared the raids of the past years.' },
+              { id: 'merchants', group: 'Merchants and shippers', impact: 'gains', text: 'Trade across the sea can resume.' },
+              {
+                id: 'african-claims',
+                group: 'Those hoping to recover Africa',
+                impact: 'loses',
+                text: 'Families and officials who still counted on regaining Africa see that hope given away.',
+              },
+              { id: 'eastern-court', group: 'The eastern court', impact: 'loses', text: 'Constantinople loses a partner for its campaign.' },
+            ],
+            uncertainty:
+              'Whether Gaiseric keeps his word cannot be known yet. It depends on whether the empire still looks strong enough to punish a breach.',
+          },
+          nextEventId: 'checkpoint-d4',
+        },
+        {
+          id: 'fortify-what-remains',
+          label: 'Give up Africa and fortify what remains',
+          rationale:
+            'Set aside any hope of reconquest for now. Spend on coastal defences in Italy and Sicily and on the provinces still loyal to the court. Safer and cheaper than war, but it admits that Africa is lost and leaves the sea to the Vandal fleet.',
+          outcome:
+            'The court turned away from Africa and spent on walls, garrisons and loyal provinces. The empire felt safer at home, but its claim to the Mediterranean shrank.',
+          warning: 'Leaves the Vandal fleet in command of the sea.',
+          effects: [
+            { resource: 'economy', delta: -6 },
+            { resource: 'military', delta: 3 },
+            { resource: 'unity', delta: 6 },
+            { resource: 'legitimacy', delta: -4 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'fortify-field-army',
+              when: { flag: 'field-army' },
+              explanation: 'Because you have a mobile field army, it can be stationed where the provinces need it most.',
+              effects: [{ resource: 'unity', delta: 3 }],
+            },
+            {
+              id: 'fortify-federates',
+              when: { flag: 'federates-settled' },
+              explanation: 'Because federate allies already guard frontier lands, fewer imperial troops are needed there.',
+              effects: [{ resource: 'military', delta: 3 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'sea-left-to-vandals',
+              dueYear: 476,
+              hint: 'With the sea left to the Vandals, coastal trade may suffer if the empire’s defences weaken.',
+              condition: { resource: 'military', below: 55 },
+              explanation: 'With the sea in Vandal hands and weak defences at home, coastal trade dwindled.',
+              lapsedExplanation: 'Strong coastal defences kept Vandal raids in check, and trade continued.',
+              effects: [{ resource: 'economy', delta: -5 }],
+              mapCues: [{ kind: 'pressure', regions: ['sicily', 'italy'], tone: 'loss', label: 'Coastal trade dwindles' }],
+            },
+          ],
+          flagsSet: ['africa-abandoned'],
+          mapCues: [
+            { kind: 'emphasis', regions: ['italy', 'sicily'], tone: 'gain', label: 'Coastal defences' },
+            { kind: 'emphasis', regions: ['africa'], tone: 'loss', label: 'Africa left to the Vandals' },
+          ],
+          narrative: {
+            ordered:
+              'You ordered coastal defences built in Italy and Sicily and turned money towards the provinces still loyal to the court, leaving Africa to the Vandals.',
+            effect:
+              'The empire is better protected at home and the provinces feel looked after, but the court has admitted it cannot recover Africa, and the sea belongs to the Vandal fleet.',
+            effectVariants: [
+              {
+                when: { flag: 'field-army' },
+                text: 'The empire is better protected at home, and the field army, stationed where the provinces need it, has made them feel looked after. But the court has admitted it cannot recover Africa, and the sea belongs to the Vandal fleet.',
+              },
+            ],
+            stakeholders: [
+              { id: 'loyal-provinces', group: 'Provinces still loyal to the court', impact: 'gains', text: 'Money and protection flow to them instead of to a distant war.' },
+              { id: 'coastal-towns', group: 'Coastal towns of Italy and Sicily', impact: 'mixed', text: 'They gain walls and garrisons, but the raiding fleet is still at sea.' },
+              { id: 'african-claims', group: 'Those hoping to recover Africa', impact: 'loses', text: 'The court has given up on them, at least for now.' },
+              {
+                id: 'federates',
+                group: 'Federate allies',
+                impact: 'gains',
+                text: 'Their role in guarding the frontier becomes more important.',
+                when: { flag: 'federates-settled' },
+              },
+            ],
+            uncertainty:
+              'Fortifications protect places, not ships. How long the Vandal fleet tolerates a cautious empire, and whether the defences hold if the army weakens, is still open.',
+          },
+          nextEventId: 'checkpoint-d4',
         },
       ],
     },
     {
       kind: 'terminal',
-      id: 'checkpoint-d3',
-      year: 461,
+      id: 'checkpoint-d4',
+      year: 471,
       yearApproximate: true,
       status: 'in-development',
-      title: 'Next: North African policy, c. 461–468',
+      title: 'Next: imperial legitimacy, c. 470–474',
       summary:
-        'Decision 3 has not been written yet. Your choices, their effects and the consequences still to come are recorded; this branch continues in the next development milestone.',
+        'Decision 4 has not been written yet. Your choices, their effects and the consequences still to come are recorded; this branch continues in the next development milestone.',
     },
   ],
 });

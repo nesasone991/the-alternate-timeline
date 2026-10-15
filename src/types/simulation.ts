@@ -1,3 +1,5 @@
+import type { MapCue } from './map';
+
 /**
  * Simulation contracts. Follows the Master Blueprint §5.3 data model, extended
  * where the engine needs more (node kinds, structured records, versions).
@@ -65,6 +67,49 @@ export type ScheduledConsequence = {
   readonly condition?: Requirement;
   readonly lapsedExplanation?: string;
   readonly effects: readonly Effect[];
+  /** Map hints used only when the consequence takes effect. */
+  readonly mapCues?: readonly MapCue[];
+};
+
+/** Text chosen by the state of the game at commit time: the first variant whose condition holds wins. */
+export type NarrativeVariant = {
+  readonly when: Requirement;
+  readonly text: string;
+};
+
+export type Stakeholder = {
+  readonly id: string;
+  /** A group or institution, described generally (e.g. "Coastal towns of Italy and Sicily"). */
+  readonly group: string;
+  readonly impact: 'gains' | 'loses' | 'mixed';
+  readonly text: string;
+  /** When set, this stakeholder line appears only if the condition held before the choice. */
+  readonly when?: Requirement;
+};
+
+/**
+ * Authored, fictional narrative feedback for a choice. Deterministic: every
+ * variant and stakeholder line is selected by the state, never at random.
+ */
+export type ChoiceNarrative = {
+  /** What the player ordered. */
+  readonly ordered: string;
+  /** How it affects the empire. */
+  readonly effect: string;
+  readonly effectVariants?: readonly NarrativeVariant[];
+  /** Who benefits and who suffers. */
+  readonly stakeholders: readonly Stakeholder[];
+  /** What remains unknown. */
+  readonly uncertainty: string;
+  readonly uncertaintyVariants?: readonly NarrativeVariant[];
+};
+
+/** The narrative as it actually applied, frozen into the record. */
+export type ResolvedNarrative = {
+  readonly ordered: string;
+  readonly effect: string;
+  readonly stakeholders: readonly { readonly id: string; readonly group: string; readonly impact: Stakeholder['impact']; readonly text: string }[];
+  readonly uncertainty: string;
 };
 
 export type Choice = {
@@ -81,6 +126,9 @@ export type Choice = {
   readonly conditionalEffects?: readonly ConditionalEffect[];
   readonly consequences?: readonly ScheduledConsequence[];
   readonly flagsSet?: readonly string[];
+  readonly narrative?: ChoiceNarrative;
+  /** Hints for a future map animation of this decision (fiction; schematic regions only). */
+  readonly mapCues?: readonly MapCue[];
   readonly nextEventId: string;
 };
 
@@ -135,6 +183,11 @@ export type AlternateScenario = {
   readonly flags: readonly FlagDefinition[];
   /** Total decisions planned for the campaign, for progress display. */
   readonly plannedDecisionCount: number;
+  /**
+   * What changed in each version, in plain language. Shown when an older save
+   * cannot be loaded. The last entry's version must equal `version`.
+   */
+  readonly changes: readonly { readonly version: number; readonly summary: string }[];
 };
 
 export type Ending = {
@@ -171,6 +224,8 @@ export type ChoiceRecord = {
   /** Ids of consequences this choice scheduled for later. */
   readonly scheduled: readonly string[];
   readonly flagsSet: readonly string[];
+  /** Present when the choice has authored narrative feedback. */
+  readonly narrative?: ResolvedNarrative;
 };
 
 export type PendingConsequence = {
@@ -191,7 +246,7 @@ export type ResolvedConsequence = PendingConsequence & {
   readonly effects: readonly AppliedEffect[];
 };
 
-export const SIMULATION_SCHEMA_VERSION = 2;
+export const SIMULATION_SCHEMA_VERSION = 3;
 
 export type SimulationState = {
   readonly schemaVersion: number;

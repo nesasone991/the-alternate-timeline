@@ -7,6 +7,7 @@ import type {
   ChoiceRecord,
   PendingConsequence,
   ResolvedConsequence,
+  ResolvedNarrative,
   SimulationState,
 } from '../../types/simulation';
 import { consequencesResolvedAt, decisionNumber, evaluateChoices, flagLabel, getCurrentNode, getNode } from './engine';
@@ -69,6 +70,11 @@ export function DecisionPanel(props: DecisionPanelProps) {
           <h2 id={headingId} className="mt-1 text-[clamp(1.5rem,3.5vw,2rem)] text-parchment">
             {node.title}
           </h2>
+          <OrderOfEvents
+            year={yearLabel(node.year, node.yearApproximate, era)}
+            arrivals={arrivals.length}
+            first={ui.state.records.length === 0}
+          />
           <CarriedOver scenario={scenario} state={ui.state} lastRecord={lastRecord} arrivals={arrivals} era={era} />
           <DecisionTurn {...props} />
         </>
@@ -140,6 +146,30 @@ function SaveNoticeBanner({
       <button type="button" className="btn btn-secondary mt-3" onClick={onDiscard}>
         Discard saved game
       </button>
+    </div>
+  );
+}
+
+/**
+ * The fixed order of a turn, spelled out so the numbers on screen are never
+ * ambiguous: consequences due by this year have ALREADY been applied (and are
+ * included in the statistics) before the player decides.
+ */
+function OrderOfEvents({ year, arrivals, first }: { year: string; arrivals: number; first: boolean }) {
+  return (
+    <div className="mt-4 border-l-2 border-teal-bright/70 pl-3" data-testid="order-of-events">
+      <p className="font-sans text-xs font-semibold text-parchment-muted">Order of events in {year}</p>
+      <ol className="mt-1 list-decimal space-y-0.5 pl-5 font-sans text-sm">
+        <li>
+          {first
+            ? 'Nothing from earlier decisions is due yet.'
+            : arrivals > 0
+              ? `Consequences due by ${year} take effect first: ${arrivals === 1 ? '1 has' : `${arrivals} have`} arrived (listed below). The statistics already include them.`
+              : `No earlier consequences were due by ${year}.`}
+        </li>
+        <li>You make this decision. Its immediate effects apply as soon as you confirm.</li>
+        <li>Its later consequences arrive in the years shown, before the decision of that year.</li>
+      </ol>
     </div>
   );
 }
@@ -226,6 +256,58 @@ function LastOutcome({
           ))}
         </ul>
       ) : null}
+      {record.narrative ? <NarrativeReport narrative={record.narrative} /> : null}
+    </div>
+  );
+}
+
+const IMPACT_LABEL = { gains: 'Gains', loses: 'Loses', mixed: 'Mixed' } as const;
+const IMPACT_STYLE = {
+  gains: 'border-teal-bright text-teal-bright',
+  loses: 'border-burgundy-bright text-burgundy-bright',
+  mixed: 'border-gold text-gold',
+} as const;
+
+/** The authored, state-dependent report on a decision. Fiction, never presented as sourced history. */
+function NarrativeReport({ narrative }: { narrative: ResolvedNarrative }) {
+  return (
+    <div className="mt-4 max-w-[40rem] border border-dashed border-burgundy-bright/40 p-4" data-testid="narrative-report">
+      <p className="font-sans text-xs font-semibold text-parchment-muted">
+        Report to the council — invented for this alternate timeline, not sourced history
+      </p>
+      <dl className="mt-2 space-y-3 text-[0.9375rem]">
+        <div>
+          <dt className="font-sans text-xs font-semibold text-gold">Your orders</dt>
+          <dd className="mt-0.5">{narrative.ordered}</dd>
+        </div>
+        <div>
+          <dt className="font-sans text-xs font-semibold text-gold">Effect on the empire</dt>
+          <dd className="mt-0.5">{narrative.effect}</dd>
+        </div>
+        <div>
+          <dt className="font-sans text-xs font-semibold text-gold">Who gains and who loses</dt>
+          <dd className="mt-1">
+            <ul className="space-y-1.5">
+              {narrative.stakeholders.map((item) => (
+                <li key={item.id} className="flex flex-wrap items-baseline gap-x-2">
+                  <span
+                    className={`inline-block min-w-[4.25rem] border px-1.5 text-center font-sans text-xs font-semibold ${IMPACT_STYLE[item.impact]}`}
+                  >
+                    {IMPACT_LABEL[item.impact]}
+                  </span>
+                  <span>
+                    <span className="text-parchment">{item.group}:</span> {item.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt className="font-sans text-xs font-semibold text-gold">Still uncertain</dt>
+          <dd className="mt-0.5">{narrative.uncertainty}</dd>
+        </div>
+      </dl>
     </div>
   );
 }

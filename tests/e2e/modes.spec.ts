@@ -18,7 +18,7 @@ test('switching between Real History and Alternate History keeps each mode worki
   await expect(page).not.toHaveURL(/mode=/);
   await expect(slider).toHaveValue('455');
   await page.getByRole('button', { name: 'Next event' }).click();
-  await expect(slider).toHaveValue('468');
+  await expect(slider).toHaveValue('461');
 
   await page.getByRole('tab', { name: /Comparison/ }).click();
   await expect(page.getByText('Comparison is not available yet.')).toBeVisible();
