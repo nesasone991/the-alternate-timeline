@@ -1,59 +1,70 @@
-# QA checklist — Phase 1
+# QA checklist
 
-Session: 15 Oct 2026.
+Last updated: 15 Oct 2026, session 2 (Phase 2, milestone 1).
 
-## How Phase 1 was verified, and what that does not cover
+## What ran where
 
-The development sandbox had **no access to the npm registry**, so `npm install` could not run there. Verification used the tools already installed in the sandbox, applied to this exact source:
+There are three kinds of evidence below. They are not interchangeable.
 
-- **Build:** esbuild bundled `src/main.tsx` (same entry as Vite) with React 19.2; Tailwind CSS 4.3's compiler built `src/styles/index.css`. React Router was replaced *in the sandbox only* by a small stand-in implementing the same API subset; vitest was likewise replaced by a stand-in for the unit tests.
-- **Types:** TypeScript strict check of all `src/` and `tests/` files against loose stand-in React types. This checks the project's own types, props and data, but not React's or React Router's API signatures.
-- **Browser:** Playwright + Chromium against the built site, served with SPA fallback and the production Content-Security-Policy from `public/_headers`.
+| Label | Meaning |
+| --- | --- |
+| **CI** | Executed for real in GitHub Actions (`.github/workflows/ci.yml`) on the actual dependency tree: Node 22.23.3, npm 10.9.9, React 19.3.1, React Router 7.18.4, Vite 7.3.7, Vitest 3.2.7, TypeScript 5.8.3, ESLint 9.39.5, jsdom 26.1.0. |
+| **Sandbox browser** | Executed in Playwright + Chromium against a build made in the development sandbox, which has no npm access. That build compiles the same source with esbuild and Tailwind 4.3's compiler, but uses a small stand-in for React Router. It proves the app's behaviour, not the real Vite bundle's. |
+| **Inspection** | Checked by reading code or computing values; nothing executed in a browser or test runner. |
 
-**Not yet run anywhere:** `npm install`, `npm run build` (real Vite), `npm run typecheck` with real `@types/react`, `npm run lint`, and `npm test` (the component tests in `tests/components/` need jsdom). Run `npm run check` on your machine to close this gap; record the result below.
+## CI runs (GitHub Actions, repo `nesasone991/the-alternate-timeline`)
 
-## Results
+| Run | Commit | Install | Typecheck | Lint (0 warnings allowed) | Tests | Build | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 38802316836 | `a5b5a01` | ✅ `npm install` (no lockfile) | ✅ | ✅ | ✅ | ✅ | First real run; no fixes were needed |
+| 38802601285 | `e5afb16` | ✅ `npm install` | ✅ | ✅ | ✅ 74/74 | ✅ | Generated `package-lock.json` and committed it (`3a47f2e`) |
+| 38802782301 | `ea3c62b` (actions v5) | ✅ `npm ci` from lockfile | ✅ | ✅ | ✅ 74/74 | ✅ | Reproducible install confirmed |
+
+Test breakdown (CI, run 38802782301): `components/app.test.tsx` 8/8 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 26/26 · `unit/playback.test.ts` 11/11 · `unit/settings.test.ts` 8/8 — **74 passed, 0 failed, 0 skipped**.
+
+Build output (CI, `vite build`, disk size): main JS 316 kB, workspace chunk 28 kB (lazy-loaded), CSS 32 kB, `index.html` 4 kB.
+
+How results are read: the sandbox cannot download Actions logs (served from a blocked storage host), so the workflow writes results as job annotations, which are read through the GitHub API. Step outcomes come from the jobs API.
+
+## Phase 2 milestone 1 — decision engine and decision 1
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Production bundle builds | ✅ sandbox | esbuild: entry 216 kB, workspace chunk 13 kB (lazy), CSS 37 kB (unminified Tailwind output) |
-| Strict type check (own types/props/data) | ✅ sandbox | `tsc` exit 0 with stand-in React types |
-| Unit tests | ✅ 40/40 | dates (8), settings (8), playback + immutability (11), data integrity + catalog (13) |
-| Component tests (`tests/components/app.test.tsx`, 7 tests) | ⬜ unrun | Needs jsdom — run `npm test` |
-| ESLint | ⬜ unrun | Run `npm run lint` |
-| Real `vite build` and `tsc` with `@types/react` | ⬜ unrun | Run `npm run build` |
-| Every route renders, correct `<h1>` and `<title>` | ✅ | 9 routes × 3 widths |
-| No horizontal overflow at 360 / 768 / 1440 px | ✅ | `scrollWidth − clientWidth = 0` on all 27 page/width combinations |
-| No console errors or CSP violations | ✅ | Zero errors across all runs with CSP enforced |
-| Navigation: header, hero, footer, campaign card, overview → workspace | ✅ | E2E |
-| Coming-soon campaigns have no button or link | ✅ | E2E + component test |
-| Unknown campaign → not found; coming-soon overview → "not available yet"; coming-soon workspace → not found | ✅ | E2E |
-| Timeline: next/previous, slider, event chips, keyboard arrows | ✅ | E2E |
-| Playback: play at 2×, pause holds position, stops at the end, replay restarts | ✅ | E2E + unit |
-| Mode tabs: URL sync (`?mode=`), arrow/Home keys, unbuilt modes explained, controls disabled with reason | ✅ | E2E |
-| Camera controls disabled with visible reason | ✅ | E2E |
-| Settings apply immediately, persist across reload, Restore defaults, Escape closes | ✅ | E2E |
-| OS `prefers-reduced-motion` respected by default; user override works | ✅ | E2E |
-| Skip link is first Tab stop; focus moves to `<main>` after navigation | ✅ | E2E |
-| Mobile menu opens, navigates, closes | ✅ | E2E at 360 px with touch |
-| External source links use `rel="noopener noreferrer"` and new tab | ✅ | E2E |
-| Actual-history data cannot be modified at runtime | ✅ | Unit test (frozen; writes throw) |
-| Corrupt or hostile settings JSON falls back to defaults; no prototype pollution | ✅ | Unit tests |
-| Text contrast ≥ WCAG AA | ✅ | Computed: body 13.5:1, muted 7.3:1, gold 7.0:1, fiction label 6.2:1, evidence label 8.2:1, button text 7.9:1 |
-| Touch targets ≥ 44 px | ✅ by design | All buttons, chips and tabs use `min-h-11` / 44 px |
-| Screen-reader pass (NVDA / VoiceOver) | ⬜ | Not done; do before launch |
-| Real devices (iOS Safari, Android Chrome, Firefox) | ⬜ | Only Chromium tested |
+| Engine unit tests (26): clamping both bounds, requested vs applied effects, resource/flag/not-flag prerequisites with reasons, boundary value (economy 30 allowed, 29 not), rejection of unknown / unavailable / out-of-turn choices, endings, no input mutation (frozen state), deterministic replay, path matrix, actual history unchanged after every path, validator catching broken links / cycles / unreachable nodes / free choices / gated-only decisions / bad ranges / unknown flags / unknown history ids | ✅ | CI |
+| Mutation check: removing clamping, or raising a prerequisite, makes tests fail | ✅ | Sandbox (2 and 5 failures respectively; reverted) |
+| D1 exact outcomes: tax reform 40/45/35/30 → 52/45/31/24; provincial revenue → 32/45/45/27; pay the armies → 28/59/35/34 (economy/military/unity/legitimacy) | ✅ | CI (unit) + sandbox browser |
+| No choice is free; no choice dominates another on every resource | ✅ | CI |
+| Component test: choose, confirm, resources change, Start over restores | ✅ | CI (jsdom) |
+| Browser at 1440 and 360 px: choose, change mind before confirming, confirm, exact resource values, choice survives tab switch, Start over, same choice twice gives same numbers, keyboard-only (arrow keys + Enter), sourced-event link opens Real History at that event, no horizontal overflow | ✅ 12/12 | Sandbox browser |
+| Fiction labelled wherever alternate content appears (decision panel, Decisions section) | ✅ | Sandbox browser + inspection |
+| Alternate data never imports actual history; both datasets frozen | ✅ | CI (unit) + inspection |
 
-## Local verification (owner)
+## Phase 1 regression
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Phase 1 browser suite (navigation, coming-soon cards, timeline, playback, mode tabs, settings persistence, focus, skip link, 404s, source links, mobile menu, reduced motion) | ✅ 15/15 | Sandbox browser. The mode-tab check was updated: Alternate History is now playable; Comparison is still explained as unbuilt with its controls disabled. |
+| All 9 routes × 360 / 768 / 1440 px: no horizontal overflow, no console errors, CSP enforced | ✅ | Sandbox browser |
+| Phase 1 unit tests (40) and component tests (6) | ✅ | CI |
+| Text contrast ≥ WCAG AA (body 13.5:1, muted 7.3:1, gold 7.0:1, fiction 6.2:1, evidence 8.2:1, button 7.9:1) | ✅ | Inspection (computed) |
+
+## Not yet verified
+
+| Check | Status |
+| --- | --- |
+| Browser tests against the **real Vite build** (with real React Router) | ⬜ Planned: add Playwright to CI |
+| Screen readers (NVDA, VoiceOver) | ⬜ |
+| Real devices: iOS Safari, Android Chrome, Firefox | ⬜ Only Chromium tested |
+| Live deployment | ⬜ Not deployed |
+
+## Verify locally
 
 ```bash
-npm install
-npm run check        # typecheck + lint + tests + production build
-npm run dev          # then walk through the demo checklist in docs/CAPTURE_GUIDE.md
+git clone https://github.com/nesasone991/the-alternate-timeline
+cd the-alternate-timeline
+npm ci
+npm run check     # typecheck + lint + tests + build
+npm run dev       # open http://localhost:5173/campaigns/fall-of-rome/workspace?mode=alternate
 ```
 
-Record results here:
-
-| Date | Who | `npm run check` | Notes |
-| --- | --- | --- | --- |
-| | | | |
+Then: pick **Reform taxation**, confirm, and check Economy reads 52, Legitimacy 24, Political Unity 31, Military 45. Start over and pick **Pay the armies first**: Military 59, Economy 28.

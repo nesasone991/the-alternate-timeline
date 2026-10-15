@@ -5,7 +5,9 @@ An interactive historical experience by **Tales of the Past**.
 
 Explore documented history, change a pivotal decision and compare the two timelines. The first campaign is **The Fall of Rome (c. 455–476 AD)**.
 
-> **Status: Phase 1 — foundation and core UI.** The sourced historical timeline works. The decision engine, interactive map, comparison view and Creator Mode are not built yet and are labelled as such in the app. See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md).
+> **Status: Phase 2, milestone 1.** The sourced historical timeline works, and the first of five alternate-history decisions is playable on a tested deterministic engine. The remaining decisions, endings, map, comparison and Creator Mode are not built yet and are labelled as such in the app. See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md).
+
+![CI](https://github.com/nesasone991/the-alternate-timeline/actions/workflows/ci.yml/badge.svg)
 
 ## Requirements
 
@@ -15,7 +17,7 @@ Explore documented history, change a pivotal decision and compare the two timeli
 ## Getting started
 
 ```bash
-npm install          # install dependencies (creates package-lock.json — commit it)
+npm ci               # install the exact versions in package-lock.json
 npm run dev          # start the dev server at http://localhost:5173
 ```
 
@@ -30,6 +32,8 @@ npm run dev          # start the dev server at http://localhost:5173
 | `npm run lint` | ESLint |
 | `npm test` | Unit and component tests (Vitest + Testing Library, jsdom) |
 | `npm run check` | All of the above in sequence — run before every commit |
+
+CI (GitHub Actions) runs install, typecheck, lint, tests and build on every push to `main`.
 
 ## Project layout
 
