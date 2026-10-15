@@ -12,7 +12,7 @@
 | State | React state + one tiny external store for settings | Zustand was optional in the brief and is not needed: settings use `useSyncExternalStore`; simulation state is a `useReducer` around the pure engine inside the workspace. Revisit if game state must cross routes (end screen, Creator Mode). |
 | Icons | In-repo SVG set (`Icon.tsx`) | Fourteen icons do not justify a dependency. Swap for `lucide-react` later if the set grows; the component API stays the same. |
 | Fonts | Device fonts only | No download, no third-party request, no licence to track. Palatino-family serif fits the subject. Self-hosting an OFL font is a later polish option. |
-| Tests | Vitest + Testing Library + jsdom | Same config pipeline as Vite. Playwright E2E is planned once gameplay exists. |
+| Tests | Vitest + Testing Library + jsdom; Playwright | Unit and component tests share Vite's pipeline. Playwright runs end-to-end against the real production build (`vite preview`) in a desktop and a phone-sized browser, in CI. |
 | Hosting | Any static host (Cloudflare Pages recommended) | `dist/` is plain files. `_redirects` and `_headers` are included for Cloudflare. |
 
 Runtime dependencies are only `react`, `react-dom` and `react-router`.
@@ -27,7 +27,7 @@ src/components  Shared, campaign-agnostic UI: layout/ (header, footer, page head
                 ui/ (Icon, Badges).
 src/features    campaigns/  catalog card and numeral emblem
                 history/    timeline panel, event entry, source links, playback reducer
-                simulation/ decision engine, scenario validator, UI hook, decision panel
+                simulation/ decision engine, scenario validator, saves, UI hook, decision panel
                 settings/   settings model, store, hooks, dialog
                 workspace/  mode tabs, map placeholder, info panel
                 home/       hero diagram, how-it-works steps
@@ -79,6 +79,22 @@ Settings is a modal dialog available from every page, not a route.
 
 Rules enforced in code and tests: no randomness (the `seed` field is reserved and documented, never used); no mutation (inputs are frozen in tests); resources clamped to 0–100 with requested vs applied change recorded; every committed choice produces a `ChoiceRecord` (traceability for the end screen).
 
+### How consequences carry forward
+
+Three mechanisms, all authored and all explained to the player — none is a bare balancing penalty:
+
+| Mechanism | When it acts | What the player sees beforehand | Recorded as |
+| --- | --- | --- | --- |
+| **Prerequisite** (`Requirement`: resource `min` / `below`, `flag`, `notFlag`) | Before a choice can be taken | "Not available: Economy 30 or more (you have 25)" | — |
+| **Conditional effect** (`Choice.conditionalEffects`) | At commit, judged on the state before the choice | "Because you paid the armies first, …" plus its chips | `ChoiceRecord.conditional` |
+| **Scheduled consequence** (`Choice.consequences`) | When the timeline reaches its `dueYear`; an optional condition is checked against the state at that time | The hint and the year only — never the numbers | `SimulationState.pending` → `resolved` (with `triggered` and an explanation, including why it lapsed) |
+
+Resolution order is deterministic: due consequences resolve on arrival at the next node, oldest due year first, then in the order they were scheduled. Consequences due after the last written node stay pending (and visible) until a later decision exists.
+
+### Saves
+
+`savegame.ts` writes `{ format, formatVersion, scenarioId, scenarioVersion, savedAt, choices }` to `localStorage` (`tat.save.<scenarioId>`) after each confirmed decision. Loading **replays the choices through the engine**, so a save cannot contain a state the rules can't produce; tampered resources or flags are ignored. Oversized, unparsable, foreign, malformed or rule-breaking saves are `corrupt`; a different format, campaign or scenario version is `incompatible`. Either way the player starts fresh, is told why, and the old save is kept until they discard it or confirm a new decision. Start over deletes the save. Bump `AlternateScenario.version` whenever authored choices change in a way that would change replays.
+
 `validateScenario.ts` checks the graph: unique ids, links resolve, no cycles, no unreachable nodes, 2–4 choices per decision, known resources and flags, valid ranges, **every choice has a downside**, at least one ungated choice per decision (no softlocks), and historical-context links point at real event ids. It runs in the unit tests and at dev startup.
 
 Data separation: `alternate.ts` refers to actual history only by event id (for "set against these sourced events" links). It never imports the actual-history dataset. Both datasets are deep-frozen.
@@ -90,8 +106,8 @@ UI: `useSimulation` wraps the engine with a pre-commit selection (change your mi
 Creator Mode should grow into a reusable studio for animated historical maps, camera moves, timeline playback and vertical/horizontal recording layouts, without paid rendering APIs. Current code keeps that path open:
 
 1. **One clock, as data.** `timelinePlayback.ts` is a pure reducer over years. Any animated scene must be a function of this clock (year plus progress within it), never of CSS or `setTimeout` timing, so a recording is reproducible and seekable.
-2. **Branches are replayable.** `replay(scenario, choiceIds)` reconstructs any alternate timeline exactly; a studio shot list can be stored as `{ choiceIds, fromYear, toYear, camera, frame }`.
-3. **Time-indexed outputs.** Actual events, future map snapshots (`MapSnapshot.year`) and simulation `ChoiceRecord.year` all carry years, so a studio can build keyframes from them.
+2. **Branches are replayable.** `replay(scenario, choiceIds)` reconstructs any alternate timeline exactly — the save format already uses this; a studio shot list can be stored as `{ choiceIds, fromYear, toYear, camera, frame }`.
+3. **Time-indexed outputs.** Actual events, future map snapshots (`MapSnapshot.year`), `ChoiceRecord.year` and `ResolvedConsequence.resolvedYear` all carry years, so a studio can build keyframes ("in 468 the provinces drift") from them.
 4. **Contracts exist:** `FramePreset` (1080×1920, 1920×1080), `PlaybackSpeed`, `CaptureOverlay` (`src/types/creator.ts`), `CameraPreset` (`src/types/map.ts`).
 5. **Renderers must take explicit props** (year, camera, layout, overlay) and not read global UI state, so a chrome-free studio route can mount them on their own.
 6. **Rendering stays in the browser** (SVG first; Canvas if performance needs it). Capture is screen recording first; browser-native `canvas.captureStream()` + `MediaRecorder` is a free later option. No server rendering, no paid APIs.

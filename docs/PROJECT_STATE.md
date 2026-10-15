@@ -1,65 +1,62 @@
 # Project state
 
-**Last updated:** 15 Oct 2026, end of session 2 (Phase 2, milestone 1).
+**Last updated:** 15 Oct 2026, end of session 3 (Phase 2, milestone 2).
 **Read this first in every new session**, then `docs/ARCHITECTURE.md` and the Master Blueprint.
 
-Repository: `github.com/nesasone991/the-alternate-timeline` (private). CI runs on every push to `main`.
+Repository: `github.com/nesasone991/the-alternate-timeline` (private). CI runs on every push to `main`: install, typecheck, lint, Vitest, build, Playwright (desktop + mobile against the production build).
 
 ## Where things stand
 
-- **Phase 1** (foundation and core UI) — done.
-- **Phase 2, milestone 1** (decision engine + decision 1) — done and verified in CI.
-- **Verification** — `npm ci`, typecheck, lint (zero warnings), 74 tests and `vite build` all pass in GitHub Actions. `package-lock.json` is committed. Details and the difference between CI, sandbox-browser and inspection evidence: `docs/QA_CHECKLIST.md`.
+- **Phase 1** — done.
+- **Phase 2, milestone 1** (engine + D1) — done.
+- **Phase 2, milestone 2** (D2, delayed consequences, saves, Playwright, decision UI) — done and verified in CI: 94/94 Vitest, 20/20 Playwright, typecheck, lint, build. Details: `docs/QA_CHECKLIST.md`.
+- **Decision 3 has not been started**, as instructed.
 
-### Implemented
+### Implemented this session
 
-Phase 1 (unchanged): design system, app shell, home, explorer, campaign overview, How It Works, About, Privacy, 404, settings dialog, sourced Real History timeline (9 events, 410–480) with playback.
-
-Phase 2 milestone 1:
-- **Engine** `src/features/simulation/engine.ts`: `createInitialState`, `evaluateChoices` (availability + plain-language prerequisite reasons + projected effects), `applyChoice` (result object, never throws for player errors), `replay`, `enumeratePaths`, `clampResource`. No randomness, no mutation, resources clamped 0–100, every commit recorded as a `ChoiceRecord`.
-- **Validator** `src/features/simulation/validateScenario.ts`: links, cycles, reachability, 2–4 choices, ranges, flags, every choice has a downside, no all-gated decision, historical-context ids exist. Runs in tests and at dev startup.
-- **Content** `src/data/scenarios/rome/alternate.ts` (fiction, frozen): D1 "Fiscal survival", c. 455 — Reform taxation (needs Legitimacy ≥ 20), Let the provinces keep a share (no prerequisite), Pay the armies first (needs Economy ≥ 30). Three flags for later decisions. All paths end at an `in-development` checkpoint for D2.
-- **UI**: Alternate History tab is playable. Decision panel with sourced-context links, choice cards (effects, prerequisites, later risks, projected result), Confirm, outcome with before → after, Start over. Info panel shows live decisions, consequences and resource meters, plus "what really happened by" the alternate year.
-- **CI** `.github/workflows/ci.yml`: install, typecheck, lint, tests, build, results as annotations, auto-commits a lockfile if missing.
+- **Delayed effects** (engine): conditional effects at commit ("Because you…"); scheduled consequences with hint, due year, optional condition and lapse explanation, resolved on arrival and recorded in `state.resolved`; still-pending ones in `state.pending`. New `below` requirement form.
+- **Decision 2, Border defence (c. 459)**: concentrate the armies in Italy / fund a mobile field army (needs Economy 30) / settle allies as federates. D1 shapes it: paying the armies first blocks the field army and strengthens the Italian garrison; letting provinces keep revenue helps federate settlement and later protects provincial loyalty. D1 choices now schedule consequences for 459 and 468; D2 choices for 468 and 476.
+- **Saves**: `tat.save.rome-alternate` written after each decision; restored on load by replaying the choice list; corrupt and incompatible saves reported with a reason and kept until discarded; Start over clears it. Privacy page updated.
+- **Decision UI**: "What carries into this decision" (last choice, why, exact changes, consequences that arrived, established decisions, still to come); per-option immediate effects, conditional effects with reasons, requirements, later consequences (hint and year), risk, exact projection.
+- **Playwright** in the repo (`tests/e2e`, `playwright.config.ts`) and CI.
+- Scenario version 2, state schema version 2.
 
 ### Not implemented
 
-- Decisions 2–5, the three endings, end screen (Phase 2).
-- Saving game state across reloads; export/import (Phase 2).
-- Interactive map (Phase 3), comparison view and share card (Phase 4), Creator Mode / Historical Animation Studio (Phase 5 — constraints documented in ARCHITECTURE.md).
-- Playwright E2E in CI against the real build; screen-reader and real-device testing; deployment.
+- Decisions 3–5, the three endings and the end screen.
+- Export/import of saves; share card (Phase 4); map (Phase 3); comparison (Phase 4); Creator Mode / Historical Animation Studio (Phase 5).
+- Screen-reader, Safari/Firefox and real-device testing; deployment.
 
 ## Commands
 
 ```bash
-npm ci           # install exactly what the lockfile records
-npm run dev      # http://localhost:5173
-npm run check    # typecheck + lint + test + build
-npm run preview  # serve dist/ at http://localhost:4173
+npm ci
+npm run dev        # http://localhost:5173
+npm run check      # typecheck + lint + test + build
+npm run test:e2e   # Playwright (needs a build and `npx playwright install chromium`)
 ```
 
 ## Known limitations
 
-1. Browser-level checks ran in the sandbox against an esbuild build with a React Router stand-in, not the real Vite bundle. Unit and component tests did run for real in CI.
-2. Simulation state lives in memory: a page reload starts the campaign again.
-3. Several historical events still rely on tertiary sources (see HISTORICAL_REVIEW.md); the D1 framing sentence reuses those facts.
-4. Balance is provisional. D1 option "pay the armies" has the highest sum of deltas (+6) by design, offset by a planned D3 cost that does not exist yet.
-5. The Actions log host is unreachable from the sandbox, so CI results are read from annotations; full logs are visible on GitHub.
-6. Channel URLs (footer) and the privacy page's hosting details are still pending.
+1. Consequences due in 468 and 476 are shown as "still to come" but cannot resolve until decisions 3–5 exist. Their effects are unit-tested only through the generic fixture, not through Rome content.
+2. Balance is provisional: eight paths, no playtesting. "Pay the armies first" → "Concentrate in Italy" gives the highest military (67) at the cost of the lowest economy (25).
+3. Several sources are still tertiary (Wikipedia), and D2's framing adds two general claims that need scholarly citations (`docs/HISTORICAL_REVIEW.md`).
+4. Saves are per browser; there is no export yet.
+5. The sandbox cannot download Actions logs; CI results are read from job annotations and the jobs API. Full logs are on GitHub.
+6. Channel URLs and the privacy page's hosting details are still pending.
 
-## Next smallest testable milestone (Phase 2, milestone 2)
+## Next smallest testable milestone (Phase 2, milestone 3)
 
-**Decision 2, "Border defence", c. 458–460**, using the existing engine:
-1. Author D2 with three choices (concentrate troops in Italy / mobile field forces / federate settlements) in `alternate.ts`. At least one choice reads a D1 flag (the first delayed consequence) and at least one sets a long-term flag for D5.
-2. Point D1's choices at D2; move the `in-development` checkpoint after D2.
-3. Tests: all 3 × 3 = 9 paths valid; the D1 flag measurably changes a D2 option; no dominance; validator clean.
-4. UI needs no new components; verify in CI and the browser.
-
-Then D3–D5 one at a time, then endings and the full 243-path matrix, then saves.
+**Decision 3, North African policy (c. 461–468)**, with the 468 consequences resolving:
+1. Author D3 (attempt reconquest / negotiate trade and access / redirect resources to internal stabilisation), set against the sourced 468 Cape Bon event, without presenting campaign costs as precise.
+2. Place D3 at c. 465 so that consequences due in 468 resolve on arrival at the D4 checkpoint (c. 470), and test each one against Rome content — triggered and lapsed.
+3. At least one D3 option depends on a D2 flag, one on economy built in D1–D2.
+4. Tests: full D1×D2×D3 matrix (up to 27 combinations), dominance, determinism; bump scenario version to 3 (saves from v2 must be refused with a reason); extend the Playwright campaign spec through D3.
 
 ## Session log
 
 | Session | Date | Work | Verification |
 | --- | --- | --- | --- |
-| 1 | 2026-10-15 | Phase 1 foundation and core UI | Sandbox only (npm unavailable) |
-| 2 | 2026-10-15 | GitHub repo + CI; engine, validator, D1, workspace integration | CI: npm ci, typecheck, lint, 74/74 tests, build. Sandbox browser: 27 checks |
+| 1 | 2026-10-15 | Phase 1 foundation and core UI | Sandbox only |
+| 2 | 2026-10-15 | GitHub + CI; engine, validator, D1 | CI: 74/74 tests, build |
+| 3 | 2026-10-15 | D2, delayed consequences, saves, decision UI, Playwright in CI | CI: 94/94 Vitest, 20/20 Playwright, typecheck, lint, build |

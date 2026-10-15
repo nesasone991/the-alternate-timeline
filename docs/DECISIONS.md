@@ -25,3 +25,12 @@
 | D21 | 2026-10-15 | Pre-commit selection with explicit Confirm; Start over is the only undo after that | Blueprint §3.5 | Checkpoints (stretch) |
 | D22 | 2026-10-15 | In Alternate mode, the sourced panel shows "what really happened by" the alternate year | Keeps evidence visible beside fiction without building Comparison early | Phase 4 comparison |
 | D23 | 2026-10-15 | Verification moved to GitHub Actions CI | The dev sandbox cannot reach npm; CI gives a genuine `npm install`/typecheck/lint/test/build | — |
+| D24 | 2026-10-15 | Delayed effects as two authored mechanisms: conditional effects (at commit) and scheduled consequences (on arrival at a due year), each with an explanation | Brief: transparent, no arbitrary penalties; players understand why without seeing future numbers | — |
+| D25 | 2026-10-15 | Scheduled consequences show hint + year in advance, never numbers; resolved ones show exact effects, or why they lapsed | Explains causes without spoiling outcomes | Playtesting |
+| D26 | 2026-10-15 | Added a `below` requirement form | Needed for "only if legitimacy is low" style conditions; keeps one meaning per requirement | — |
+| D27 | 2026-10-15 | Saves store only the choice list and rebuild by replay | Makes tampered saves harmless and guarantees restored states are rule-valid | Saves need data the engine cannot recompute |
+| D28 | 2026-10-15 | A save that fails to load is kept until discarded or overwritten by a new decision | Blueprint §6.9: clear recovery option; nothing silently deleted | — |
+| D29 | 2026-10-15 | Scenario version 2 and state schema 2 | D1 now leads to D2 and schedules consequences; v1 saves would replay differently | Next content change |
+| D30 | 2026-10-15 | Playwright runs against `vite preview` (production build) in desktop and Pixel 7 projects, no retries | Real bundle and real router; flaky tests must fail visibly | — |
+| D31 | 2026-10-15 | CI updates the lockfile itself when `package.json` gains a dependency | The development sandbox cannot run npm; CI commits the resolved lockfile and the next run proves `npm ci` | A contributor with npm access joins |
+| D32 | 2026-10-15 | One D1–D2 combination is blocked by design (pay the armies → field army) | Makes the D1 trade-off bite in D2; nine combinations validated, eight reachable | Balance review |
