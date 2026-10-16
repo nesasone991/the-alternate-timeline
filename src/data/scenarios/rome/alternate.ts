@@ -83,34 +83,37 @@ const D5_SITUATION = {
  * Resource values are gameplay abstractions on a 0–100 scale. They are not
  * historical measurements and no number here is claimed to be one.
  *
- * Milestone status: decisions 1–4 of 5 are written. Every path ends at an
- * in-development checkpoint (c. 474) where decision 5 will go.
+ * Milestone status: all five decisions are written. Every path ends at the
+ * settlement of 476, where the ending is classified. (The ending screen itself
+ * is a later milestone; the structured report is built by endings.ts.)
  *
  * How consequences carry forward (each with an authored reason, never a bare penalty):
  * - Flags record what was decided; later choices read them as prerequisites or
  *   as conditional effects ("Because you …").
- * - Scheduled consequences fall due in a later year (459, 468, 472, 475, 476).
+ * - Scheduled consequences fall due in a later year (459, 468, 472, 475, 476, 480).
+ * - A decision's effects are settled together. A cost that cannot be paid in
+ *   full has a structural consequence (shortfallRules): half the unpaid part,
+ *   rounded up, falls on another resource, and a flag records it.
  *
- * ORDER OF EVENTS within a year: consequences due by a decision's year take
- * effect on arrival, BEFORE that decision is shown. So everything due in 468
- * resolves before Decision 3 (c. 468), and everything due in 472 before
- * Decision 4 (c. 472). The player sees hints and years in advance, never
- * numbers. Some consequences only take effect if a condition holds when they
- * come due; otherwise they lapse, with a reason.
+ * ORDER OF EVENTS: consequences due by a decision's year take effect on
+ * arrival, BEFORE that decision is shown (468 before D3, 472 before D4, 475
+ * before D5). After Decision 5 the campaign arrives at the settlement of 476:
+ * every consequence due by 476 resolves first, THEN the ending is classified
+ * from the complete state. Consequences due in 480 stay pending and count as
+ * looming threats if their condition already holds.
  *
  * Path matrix (verified in tests/unit/rome-campaign.test.ts against an
- * independent reference model): 81 theoretical D1×D2×D3×D4 combinations;
- * 54 valid; 9 blocked at D2 (paying the armies leaves too little money for a
- * field army); 9 blocked at D3 (Military 49 or 46 is below the 50 the
- * expedition needs, or Legitimacy 12 below the 15 a treaty needs); 9 blocked
- * at D4 (restoring authority needs Legitimacy 15 and Economy 10; ruling
- * through the commander needs Military 50). Every state that reaches D4 has
- * at least two options, and bargaining with the regions is always open.
+ * independent reference model): 243 theoretical D1–D5 combinations; 145
+ * valid; 27 blocked at D2, 27 at D3, 27 at D4 and 17 at D5 (defending the
+ * office needs Military 40 and is ruled out when the commander rules). Every
+ * state reaching D4 or D5 has at least two options. Endings over the 145
+ * valid paths: Imperial Survival 13, Fragmented Survival 91, Imperial Collapse 41.
  *
  * Recovery at D4 (no automatic rescue): bargaining with the regions brings
  * landowner loans when Economy is below 15 and counts for more when
  * Legitimacy is below 15, but costs revenue and troops, hands tax collection
- * to creditors, and strains in 476 if the treasury is still below 20.
+ * to creditors, and strains in 476 if the treasury is still below 20. At D5,
+ * sharing power and handing government to successors are always open.
  *
  * Balance adjustments in version 3, each with an in-world reason:
  * - Tax reform pays for a better-equipped field army (+3 Military), so a strong

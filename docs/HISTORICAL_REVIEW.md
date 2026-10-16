@@ -71,6 +71,29 @@ Not used, because the sources consulted present them as suspicion or interpretat
 3. The report text names broad groups (officials loyal to the court, army commanders, provincial leaders, the Senate and civil officials, federate kings, landowners who lent the court money). All are labelled fiction and cite nothing.
 4. Constantinople's attitude in the reports (backing the emperor after a joint expedition, cool after a separate peace) is invented game logic, not a claim about Leo I.
 
+## Decision 5, the final crisis, and 474–480 (added 16 Oct 2026, session 6)
+
+New and revised events, each checked against its listed sources on 16 Oct 2026:
+
+| Event | Date as shown | Check | Notes and disputes |
+| --- | --- | --- | --- |
+| Julius Nepos, sent from Constantinople, replaces Glycerius | June 474 (month) | ✅ Britannica + Wikipedia | Gundobad raised Glycerius in 473 without eastern approval; Nepos landed in 474 and Glycerius became a bishop. Proclamation 19 or 24 June; landing at Portus or (Jordanes) Ravenna — both in the caveat. Britannica says "sent by Leo I"; Wikipedia says Leo appointed him and he sailed with Zeno's backing after Leo's death. |
+| Nepos gives up the Auvergne to make peace with Euric | 475 (year) | ⚠️ **Contested** | Wikipedia ("Julius Nepos") stresses the Auvergne; Wikipedia ("Euric") frames the deal around Provence and the Barcelona region and calls it recognition of full independence; Britannica ("Euric") says he was a federate "until 475, when he was recognized as an independent king". Marked contested; terms in the caveat. |
+| Orestes ousts Nepos and crowns his son (revised) | 475 (year) | ✅ Britannica ×2 + Wikipedia ×2 | Orestes was Nepos' appointee over the army; Nepos fled in August; Romulus proclaimed 31 October; not recognised by Constantinople (Britannica: "a usurper and puppet not recognized as a legitimate ruler by the Eastern emperor"). |
+| Odoacer deposes Romulus Augustulus (revised) | 476 (year) | ✅ | Added the soldiers' demand for land (Wikipedia "Odoacer" mentions land and settlement; **the often-quoted "one third" is not in the source used**, so the app does not say it) and Romulus' pension in Campania (Anonymus Valesianus via Wikipedia; Britannica agrees he was pensioned). Britannica gives 28 August 476 for Orestes' execution; Wikipedia gives 23 August for Odoacer's proclamation and 4 September for the deposition. Existing caveat on dates retained. |
+| The Senate sends the Western regalia to Constantinople | c. 476 (approximate) | ⚠️ **Contested** | Known mainly from Malchus. Date (476 or 477) and Zeno's terms differ between the two Wikipedia articles (patrician rank granted directly vs "should come from Nepos"); both in the caveat. |
+| Roman institutions continue in Italy under Odoacer | c. 477 (approximate, spans 476–493) | ✅ Wikipedia + WHE | Senate cooperation, consuls named, senators in high office (Bury, via Wikipedia). Caveat: Bury saw 476 as one stage of dismemberment, not an end. |
+| Julius Nepos is killed in Dalmatia (revised) | 480 (year) | ✅ Britannica + Wikipedia | Britannica: 9 May 480, "murdered by friends of Glycerius". Wikipedia: 25 April, 9 May or 22 June (9 May usually favoured); Glycerius' involvement disputed. Caveat added. Britannica calls Nepos "the last legitimate Western Roman emperor"; the app keeps the existing wording that some historians count him, not Romulus, as the last. |
+
+**D5 context** restates only the facts above and links to four events (474, 475 ×2, 476).
+
+**D5 options and all three endings are fiction.** They echo real possibilities of 475–476 — an emperor trying to hold the office by force (Orestes and Romulus did not; the game lets the council try), meeting the soldiers' demand for land (which Orestes refused and Odoacer granted), and letting the Western office lapse in favour of a ruler acknowledging Constantinople (close to what happened under Odoacer) — but the game claims none of the outcomes. Points for a reviewer:
+
+1. "Hand government to successor rulers under Constantinople" is closest to the historical outcome. Its effects (treasury relief, Roman administration continuing) are game logic, informed by but not citing the Odoacer and institutions events; check it does not read as a claim about what Odoacer's rule was like.
+2. The ending names "Imperial Survival / Fragmented Survival / Imperial Collapse" describe fictional outcomes. The real history (no Western emperor in Italy after 476, Roman institutions continuing under Odoacer, the Eastern Empire continuing) is closest in spirit to *Fragmented Survival* via successors; the game does not say so as a verdict, to avoid presenting a historiographical position as fact. The future comparison mode should show the sourced baseline side by side.
+3. The ending report's sections on the army, economy, regions and Constantinople are authored fiction chosen by rules; none cites a source.
+4. The unpaid-cost rules ("the court seized goods and labour from the provinces", "towns and landowners had to raise their own defence") are plausible in kind for the period but are not presented as documented events.
+
 ## Recommended scholarly references to consult (not yet cited)
 
 These are standard works. They have **not** been read for this project yet and are therefore not cited in the app.
@@ -91,3 +114,6 @@ These are standard works. They have **not** been read for this project yet and a
 - [ ] 474 East–Vandal peace sourced before any decision text refers to it.
 - [ ] The 471 defeat in Gaul confirmed (date, place, Anthemiolus) from a scholarly source.
 - [ ] D4 framing reviewed (points 1–4 above).
+- [ ] D5 framing and ending text reviewed (points 1–4 in the Decision 5 section).
+- [ ] The terms of the 475 peace with Euric confirmed from a scholarly source (e.g. Wolfram 1988, Mathisen 1998).
+- [ ] The Senate's embassy to Zeno (date and terms) confirmed from a scholarly source or a translation of Malchus.

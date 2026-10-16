@@ -1,6 +1,6 @@
 # QA checklist
 
-Last updated: 16 Oct 2026, session 5 (Phase 2, milestone 4 — Decision 4).
+Last updated: 16 Oct 2026, session 6 (Phase 2, milestone 5 — Decision 5 and ending rules).
 
 ## What ran where
 
@@ -23,10 +23,12 @@ Last updated: 16 Oct 2026, session 5 (Phase 2, milestone 4 — Decision 4).
 | **38810346645** | `6b94b0a` | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ✅ 22/22 | **Fix:** menu links close the menu in the same update as the navigation; the helper waits for `aria-expanded="false"` before opening. Also 66/66 locally (suite ×3). |
 | 38810557901 | `8fa1c6b` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ✅ 22/22 | End of session 4 |
 | **38946100373** | `00029a0` | ✅ `npm ci` | ✅ | ✅ | ✅ **139/139** | ✅ | ✅ **24/24** | **Session 5 milestone (Decision 4); passed on the first CI run** |
+| 38946476398 | `f4831b1` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 139/139 | ✅ | ✅ 24/24 | End of session 5 |
+| **38949456541** | `783239d` | ✅ `npm ci` | ✅ | ✅ | ✅ **167/167** | ✅ | ✅ **28/28** | **Session 6 milestone (Decision 5, endings, unpaid costs); passed on the first CI run** |
 
-Vitest breakdown (run 38946100373): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 26/26 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 41/41 · `unit/savegame.test.ts` 16/16 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 7/7.
+Vitest breakdown (run 38949456541): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 35/35 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 57/57 · `unit/savegame.test.ts` 18/18 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 8/8.
 
-Playwright (run 38946100373), each in **desktop** (1440×900) and **mobile** (Pixel 7):
+Playwright (run 38949456541), each in **desktop** (1440×900) and **mobile** (Pixel 7):
 
 | Spec | Desktop | Mobile |
 | --- | --- | --- |
@@ -35,15 +37,37 @@ Playwright (run 38946100373), each in **desktop** (1440×900) and **mobile** (Pi
 | Buttons, icon buttons and tabs are at least 44 px tall | ✅ | ✅ |
 | Real ↔ Alternate History switching keeps each mode working; Comparison explained and disabled | ✅ | ✅ |
 | Sourced-context link in a decision opens that event in Real History | ✅ | ✅ |
-| Complete D1–D4 with exact resources (25/67/21/39 at D3; 13/61/21/45 at D4 after the 472 debts; 18/57/14/56 after restoring authority); order-of-events boxes for 468 and 472; D3 → D4 conditional shown; report with political situation, notes, influence, consequences and risks; refresh restores everything; Start over resets and clears the save | ✅ | ✅ |
+| Play all five decisions with exact resources (25/67/21/39 at D3; 13/61/21/45 at D4; 22/57/14/56 at D5 after the 475 loyal-administration bonus); order-of-events boxes for 468, 472, 475 and the settlement of 476; D4 → D5 conditional shown; 476 consequences listed; ending **Imperial Collapse** at 13/47/9/70 with its reason; refresh restores the ending; Start over resets and clears the save | ✅ | ✅ |
 | A D3 option blocked by earlier choices explains why (Military 49 < 50); a lapsed 468 consequence and a lapsed 472 consequence (treaty does not hold) are shown; the commander option at D4 is blocked with its reason | ✅ | ✅ |
-| Empty treasury at D4: the 472 debts are capped at 0; restoring authority is blocked ("Economy 10 or more (you have 0)"); the bargain brings landowner loans (Economy 10) and its report and later strain are shown | ✅ | ✅ |
+| Empty treasury: the 472 debts find only 1 of 5 ("Could not be paid in full: 4 Economy", Unity 49 → 47, flag recorded); restoring authority blocked; the commander option warns "Cannot be paid in full: 5 Economy" before choosing; the bargain → Economy 4 at D5; defending the office then ends in **Fragmented Survival** | ✅ | ✅ |
+| **Imperial Survival** reachable: armies paid → Italy → treaty → bargain → defend; 26/63/29/45; conditions listed | ✅ | ✅ |
+| **Fragmented Survival** through successors: tax reform → federates → fortify → bargain → hand over; Unity 54, Legitimacy 6 | ✅ | ✅ |
 | Changing your mind before confirming changes nothing | ✅ | ✅ |
 | Damaged save: reported, kept until discarded, page keeps working | ✅ | ✅ |
-| A real version 3 save is refused: "earlier version of this campaign (version 3; this is version 4)" plus the v4 change note | ✅ | ✅ |
+| A real version 4 save is refused: "earlier version of this campaign (version 4; this is version 5)" plus the v5 change note | ✅ | ✅ |
 | Keyboard only: arrow keys select, Enter confirms | ✅ | ✅ |
 
-Build (CI, disk size): main JS 368 kB, workspace chunk 36 kB (lazy), CSS 36 kB.
+Build (CI, disk size): main JS 396 kB, workspace chunk 36 kB (lazy), CSS 36 kB.
+
+## Milestone 5 checks (Decision 5, endings, unpaid costs)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| All 243 theoretical D1–D5 combinations match an independent reference model exactly (state at D3, D4, D5 and at the settlement; ending and rule; pending and looming consequences; unpaid-cost flags; refusal messages): **145 valid**; **27 blocked at D2, 27 at D3, 27 at D4, 17 at D5** (defending the office: Military below 40, or the commander rules) | ✅ | CI (unit) |
+| `enumeratePaths` returns exactly the 145 valid paths; each ends at the settlement of 476 with five records, resources integers within 0–100 | ✅ | CI (unit) |
+| All 21 states reaching D4 and all 54 reaching D5 have at least two options; sharing power and handing over are always open at D5 | ✅ | CI (unit) |
+| No option at D3, D4 or D5 is better than another on every resource, from any reachable state | ✅ | CI (unit) |
+| 475 consequences resolve before D5; 476 consequences resolve at the settlement, before the ending; every conditional 475/476 consequence occurs both triggered and lapsed across the paths, unconditional ones always land; only 480 consequences remain pending | ✅ | CI (unit + Playwright) |
+| **Endings** over the 145 valid paths: Imperial Survival 13, Fragmented Survival 91, Imperial Collapse 41. Defending the office and sharing power each lead to all three; handing over leads to two — the final choice alone never decides | ✅ | CI (unit) |
+| Specific ending cases: Imperial Survival (armies → Italy → treaty → bargain → defend, 26/63/29/45; also via sharing power after restoring authority); Fragmented Survival (default in 472 then a won war; successors after federates and a bargain); Imperial Collapse (restoring authority over a divided empire then fighting, 64/35/9/30; sharing power with Legitimacy 14) | ✅ | CI (unit + Playwright) |
+| Ending report for every valid path: fictional, all six sections, three key decisions, matched conditions all met, deterministic | ✅ | CI (unit) |
+| **Unpaid costs:** every cost cut short at 0 has a structural consequence on the same decision or consequence (half the unpaid part, rounded up, on the target; flag set); examples at 472 (debts) and 475 (commander's ambition at Legitimacy 0); recovery remains possible after a default | ✅ | CI (unit + Playwright) |
+| Settlement: costs and gains in one decision offset before clamping (bargain at Economy 0 → 4, no shortfall) | ✅ | CI (unit) |
+| Engine fixture: settlement, shortfall without chaining, no rule → no conversion, projection shows structural, classification trace with looming threats, ending report, validator checks for shortfall rules, ending rules and report lines | ✅ | CI (unit) |
+| Event stream: structural consequences on events; final `ending` event after the 476 consequences | ✅ | CI (unit) |
+| Saves: v4 refused with the v5 note; v2 lists v3–v5; D4 save restores at D5; finished campaign restores with its ending, unpaid costs and pending threats; a save that continues past the ending is rejected | ✅ | CI (unit + component + Playwright) |
+| Four new sourced events in chronological order with caveats; actual history unchanged by every path | ✅ | CI (unit) |
+| Visual check of the unpaid-cost warning and the ending result at 1440 px and 360 px | ✅ | Sandbox screenshots + Playwright overflow checks |
 
 ## Milestone 4 checks (Decision 4)
 
@@ -116,8 +140,10 @@ npm run test:e2e                  # end-to-end, desktop and mobile
 npm run dev                       # http://localhost:5173/campaigns/fall-of-rome/workspace?mode=alternate
 ```
 
-By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Decision 3 (c. 468) opens with "Order of events in c. 468" and the provinces-drift consequence already applied (Political Unity 27 → 21); Economy 25, Military 67, Legitimacy 39. Choose **Join the eastern expedition against Carthage** → Decision 4 (c. 472) opens with the expedition's debts already applied: Economy 13, Military 61, Political Unity 21, Legitimacy 45, and the Decision 3 report. Choose **Restore the emperor's authority** → Economy 18, Military 57, Political Unity 14, Legitimacy 56, with a report that starts with the political situation. Refresh: the same state comes back. **Start over**: everything resets.
+By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Decision 3 (c. 468) opens with "Order of events in c. 468" and the provinces-drift consequence already applied (Political Unity 27 → 21); Economy 25, Military 67, Legitimacy 39. Choose **Join the eastern expedition against Carthage** → Decision 4 (c. 472) opens with the expedition's debts already applied: Economy 13, Military 61, Political Unity 21, Legitimacy 45, and the Decision 3 report. Choose **Restore the emperor's authority** → Decision 5 (c. 475) opens with the 475 bonus already applied: Economy 22, Military 57, Political Unity 14, Legitimacy 56. Choose **Defend the imperial office by force** → the settlement of 476 lists what happened in 476, and the result is **Imperial Collapse** (13/47/9/70) with the reason. Refresh: the same state comes back. **Start over**: everything resets.
 
-Recovery: **Let the provinces keep a share** → **Fund a mobile field army** → **Join the eastern expedition** reaches Decision 4 with Economy 0; restoring authority is locked, and **Strike a bargain with the regional powers** brings Economy back to 10 through landowner loans.
+Other endings: **Pay the armies first → Concentrate in Italy → Treaty with Gaiseric → Bargain → Defend** gives Imperial Survival; **Reform taxation → Settle federates → Give up Africa → Bargain → Hand government to successors** gives Fragmented Survival.
 
-To see the old-save message: in the browser console run `localStorage.setItem('tat.save.rome-alternate', JSON.stringify({format:'the-alternate-timeline/save',formatVersion:1,scenarioId:'rome-alternate',scenarioVersion:3,savedAt:'2026-10-15T20:00:00.000Z',choices:['reform-taxation']}))` and reload.
+Recovery: **Let the provinces keep a share** → **Fund a mobile field army** → **Join the eastern expedition** reaches Decision 4 with Economy 0; restoring authority is locked, the commander option warns that 5 Economy cannot be paid, and **Strike a bargain with the regional powers** brings Economy to 4 through landowner loans.
+
+To see the old-save message: in the browser console run `localStorage.setItem('tat.save.rome-alternate', JSON.stringify({format:'the-alternate-timeline/save',formatVersion:1,scenarioId:'rome-alternate',scenarioVersion:4,savedAt:'2026-10-15T20:00:00.000Z',choices:['reform-taxation']}))` and reload.
