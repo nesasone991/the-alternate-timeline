@@ -17,8 +17,9 @@ describe('replayWithEvents (data for the future Animation Studio)', () => {
       '468:field-army-upkeep',
       '468:field-army-victories',
       'decide:d3-north-africa',
+      '472:expedition-debts',
     ]);
-    expect(events.map((e) => e.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(events.map((e) => e.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     for (let i = 1; i < events.length; i += 1) expect(events[i]!.year).toBeGreaterThanOrEqual(events[i - 1]!.year);
     expect(events.every((e) => e.fiction)).toBe(true);
   });
@@ -57,12 +58,26 @@ describe('replayWithEvents (data for the future Animation Studio)', () => {
 
   it('includes the resolved narrative for Decision 3, chosen from the state before the choice', () => {
     const { events } = replayWithEvents(rome, ['pay-the-armies', 'hold-italy', 'join-expedition']);
-    const d3 = events.at(-1);
+    const d3 = events.find((e) => e.kind === 'decision' && e.decisionId === 'd3-north-africa');
     expect(d3?.kind).toBe('decision');
     if (d3?.kind !== 'decision') return;
     expect(d3.narrative?.ordered).toMatch(/^You /);
     expect(d3.narrative?.stakeholders.some((s) => s.impact === 'gains')).toBe(true);
     expect(d3.narrative?.stakeholders.some((s) => s.impact === 'loses')).toBe(true);
+  });
+
+  it('places the 472 consequences between Decision 3 and Decision 4, including a lapsed one', () => {
+    const { events } = replayWithEvents(rome, ['reform-taxation', 'hold-italy', 'treaty-with-gaiseric', 'bargain-with-regions']);
+    expect(events.slice(-3).map((e) => (e.kind === 'decision' ? `decide:${e.decisionId}` : `${e.year}:${e.consequenceId}:${e.triggered}`))).toEqual([
+      '472:treaty-eastern-resentment:true',
+      '472:treaty-holds:false',
+      'decide:d4-imperial-legitimacy',
+    ]);
+    const d4 = events.at(-1);
+    if (d4?.kind !== 'decision') throw new Error('expected decision');
+    expect(d4.year).toBe(472);
+    expect(d4.narrative?.situation).toBeTruthy();
+    expect(d4.mapCues.length).toBeGreaterThan(0);
   });
 
   it('rejects an invalid path instead of inventing events', () => {

@@ -111,7 +111,16 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
           ids.add(item.id);
           if (item.when) checkRequirement(`${cw} / stakeholder ${item.id}`, item.when);
         }
-        for (const variant of [...(n.effectVariants ?? []), ...(n.uncertaintyVariants ?? [])]) {
+        if (n.situation !== undefined && !n.situation.trim()) errors.push(`${cw}: empty narrative situation.`);
+        if (n.situation === undefined && ((n.situationVariants ?? []).length > 0 || (n.situationNotes ?? []).length > 0)) {
+          errors.push(`${cw}: situation variants or notes need a default situation.`);
+        }
+        for (const variant of [
+          ...(n.effectVariants ?? []),
+          ...(n.uncertaintyVariants ?? []),
+          ...(n.situationVariants ?? []),
+          ...(n.situationNotes ?? []),
+        ]) {
           checkRequirement(`${cw} / narrative variant`, variant.when);
           if (!variant.text.trim()) errors.push(`${cw}: empty narrative variant.`);
         }

@@ -1,5 +1,50 @@
 import { deepFreeze } from '../../../lib/freeze';
-import type { AlternateScenario } from '../../../types/simulation';
+import type { AlternateScenario, ChoiceNarrative } from '../../../types/simulation';
+
+/**
+ * The political situation at Decision 4, shared by all three reports. The
+ * default line is replaced if the court is broke or has lost its standing, and
+ * every note whose condition holds is added, so the report reflects earlier
+ * decisions, relations with Constantinople and the regions, and resources.
+ */
+const D4_SITUATION = {
+  situation:
+    'Your council meets with the empire’s authority contested. The court, the commanders of the army, the great landowners and the rulers of the provinces each claim a say in who governs, and none of them can govern alone.',
+  situationVariants: [
+    {
+      when: { resource: 'legitimacy', below: 15 },
+      text: 'The court’s standing has collapsed. Few outside the palace still obey its orders unless they are paid or forced to, and the commanders, the landowners and the provinces are bargaining over its future without it.',
+    },
+    {
+      when: { resource: 'economy', below: 15 },
+      text: 'The treasury is all but empty. The court cannot pay its officials or its soldiers on time, and whoever lends it money will expect a say in how the empire is governed.',
+    },
+  ],
+  situationNotes: [
+    {
+      when: { flag: 'joined-expedition' },
+      text: 'Because the West sailed with the eastern expedition, Constantinople regards the court as a partner.',
+    },
+    {
+      when: { flag: 'vandal-treaty' },
+      text: 'Because the court made its own peace with Gaiseric, Constantinople is cool towards it, though the Vandal raids have eased.',
+    },
+    {
+      when: { flag: 'africa-abandoned' },
+      text: 'Because the court gave up Africa to defend what remained, the provinces it still holds look to it for protection.',
+    },
+    {
+      when: { flag: 'italy-garrisoned' },
+      text: 'With the armies concentrated in Italy, the Italian elite feel secure and the provinces beyond the Alps feel neglected.',
+    },
+    { when: { flag: 'field-army' }, text: 'The mobile field army answers to its commander first and to the court second.' },
+    {
+      when: { flag: 'federates-settled' },
+      text: 'Federate leaders now hold land inside the empire and expect a voice in its affairs.',
+    },
+    { when: { resource: 'military', min: 60 }, text: 'The army is strong, and its commanders know it.' },
+  ],
+} as const satisfies Pick<ChoiceNarrative, 'situation' | 'situationVariants' | 'situationNotes'>;
 
 /**
  * FICTIONAL alternate-history campaign for the Fall of Rome.
@@ -11,26 +56,34 @@ import type { AlternateScenario } from '../../../types/simulation';
  * Resource values are gameplay abstractions on a 0–100 scale. They are not
  * historical measurements and no number here is claimed to be one.
  *
- * Milestone status: decisions 1–3 of 5 are written. Every path ends at an
- * in-development checkpoint where decision 4 will go.
+ * Milestone status: decisions 1–4 of 5 are written. Every path ends at an
+ * in-development checkpoint (c. 474) where decision 5 will go.
  *
  * How consequences carry forward (each with an authored reason, never a bare penalty):
  * - Flags record what was decided; later choices read them as prerequisites or
  *   as conditional effects ("Because you …").
- * - Scheduled consequences fall due in a later year (459, 468, 472, 476).
+ * - Scheduled consequences fall due in a later year (459, 468, 472, 475, 476).
  *
  * ORDER OF EVENTS within a year: consequences due by a decision's year take
  * effect on arrival, BEFORE that decision is shown. So everything due in 468
- * resolves first, and Decision 3 (c. 468) is made with those results in hand.
- * The player sees hints and years in advance, never numbers. Some consequences
- * only take effect if a condition holds when they come due; otherwise they
- * lapse, with a reason.
+ * resolves before Decision 3 (c. 468), and everything due in 472 before
+ * Decision 4 (c. 472). The player sees hints and years in advance, never
+ * numbers. Some consequences only take effect if a condition holds when they
+ * come due; otherwise they lapse, with a reason.
  *
- * Path matrix (verified in tests/unit/rome-campaign.test.ts): 27 theoretical
- * D1×D2×D3 combinations; 21 valid; 3 blocked at D2 (paying the armies leaves too
- * little money for a field army); 3 blocked at D3 (holding Italy without paid
- * troops leaves Military 49, below the 50 needed for the expedition, twice; tax
- * reform plus federates leaves Legitimacy 12, below the 15 needed to negotiate).
+ * Path matrix (verified in tests/unit/rome-campaign.test.ts against an
+ * independent reference model): 81 theoretical D1×D2×D3×D4 combinations;
+ * 54 valid; 9 blocked at D2 (paying the armies leaves too little money for a
+ * field army); 9 blocked at D3 (Military 49 or 46 is below the 50 the
+ * expedition needs, or Legitimacy 12 below the 15 a treaty needs); 9 blocked
+ * at D4 (restoring authority needs Legitimacy 15 and Economy 10; ruling
+ * through the commander needs Military 50). Every state that reaches D4 has
+ * at least two options, and bargaining with the regions is always open.
+ *
+ * Recovery at D4 (no automatic rescue): bargaining with the regions brings
+ * landowner loans when Economy is below 15 and counts for more when
+ * Legitimacy is below 15, but costs revenue and troops, hands tax collection
+ * to creditors, and strains in 476 if the treasury is still below 20.
  *
  * Balance adjustments in version 3, each with an in-world reason:
  * - Tax reform pays for a better-equipped field army (+3 Military), so a strong
@@ -40,7 +93,7 @@ import type { AlternateScenario } from '../../../types/simulation';
  */
 export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScenario>({
   id: 'rome-alternate',
-  version: 3,
+  version: 4,
   campaignId: 'fall-of-rome',
   title: 'The Fall of Rome: Can the West Survive?',
   disclaimer:
@@ -60,6 +113,11 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
       version: 3,
       summary:
         'Decision 3, North African policy, and the consequences due in 468. A field army now benefits from tax reform, and landowners only turn against the court if its legitimacy falls below 28.',
+    },
+    {
+      version: 4,
+      summary:
+        'Decision 4, imperial legitimacy, and the consequences due in 472. Decision 3 now leads on to Decision 4, so every path continues further than before.',
     },
   ],
   flags: [
@@ -107,6 +165,21 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
       id: 'africa-abandoned',
       label: 'You gave up Africa and fortified what remained',
       laterEffect: 'Stronger defences at home; the sea left to the Vandal fleet.',
+    },
+    {
+      id: 'central-authority',
+      label: 'You restored the emperor’s authority',
+      laterEffect: 'A stronger court, and powerful men who lost their independence to it.',
+    },
+    {
+      id: 'regional-bargain',
+      label: 'You struck a bargain with the regional powers',
+      laterEffect: 'The empire holds together by agreement, for as long as each side keeps its word.',
+    },
+    {
+      id: 'commander-rules',
+      label: 'You let the army’s commander rule in the emperor’s name',
+      laterEffect: 'Order backed by the army, and a commander with the power to choose emperors.',
     },
   ],
   nodes: [
@@ -442,7 +515,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             uncertainty:
               'Whether Carthage can be taken is not settled here. What the campaign finally achieves — and whether the Vandals retaliate — depends on what comes next.',
           },
-          nextEventId: 'checkpoint-d4',
+          nextEventId: 'd4-imperial-legitimacy',
         },
         {
           id: 'treaty-with-gaiseric',
@@ -516,7 +589,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             uncertainty:
               'Whether Gaiseric keeps his word cannot be known yet. It depends on whether the empire still looks strong enough to punish a breach.',
           },
-          nextEventId: 'checkpoint-d4',
+          nextEventId: 'd4-imperial-legitimacy',
         },
         {
           id: 'fortify-what-remains',
@@ -589,19 +662,322 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
             uncertainty:
               'Fortifications protect places, not ships. How long the Vandal fleet tolerates a cautious empire, and whether the defences hold if the army weakens, is still open.',
           },
-          nextEventId: 'checkpoint-d4',
+          nextEventId: 'd4-imperial-legitimacy',
+        },
+      ],
+    },
+    {
+      kind: 'decision',
+      id: 'd4-imperial-legitimacy',
+      year: 472,
+      yearApproximate: true,
+      title: 'Imperial legitimacy',
+      context:
+        'In 467 Constantinople sent Anthemius to rule the West, and Ricimer, the general who had made and unmade emperors since 456, married his daughter. Their quarrel over who truly ruled ended in war in 472: Ricimer besieged Rome and raised a rival emperor, and Anthemius was killed. Meanwhile Euric’s Visigoths, still formally Rome’s allies, were taking land in Gaul and Hispania. In your timeline the same question now reaches the council: whose authority holds the empire together?',
+      historicalContextIds: ['anthemius-467', 'gaul-defeat-471', 'ricimer-overthrows-anthemius-472', 'ricimer-olybrius-die-472'],
+      prompt: 'Where should the emperor’s authority come from?',
+      choices: [
+        {
+          id: 'restore-imperial-authority',
+          label: 'Restore the emperor’s authority',
+          rationale:
+            'Bring appointments, revenue and the command of the army back under the emperor. Offices go to men loyal to the court, and commanders who act on their own are recalled. If it works, the court governs again; it will also make enemies of every commander and provincial leader used to deciding for himself.',
+          outcome:
+            'The court took back control of appointments and revenue and recalled the commanders who had acted on their own. The emperor’s standing rose; the commanders and provincial leaders who lost their independence resented it.',
+          warning: 'Needs some standing and some money to enforce, and it turns powerful men into opponents.',
+          prerequisites: [
+            { resource: 'legitimacy', min: 15 },
+            { resource: 'economy', min: 10 },
+          ],
+          effects: [
+            { resource: 'economy', delta: 5 },
+            { resource: 'legitimacy', delta: 8 },
+            { resource: 'unity', delta: -7 },
+            { resource: 'military', delta: -4 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'authority-eastern-backing',
+              when: { flag: 'joined-expedition' },
+              explanation:
+                'Because the West sailed with the eastern expedition, Constantinople publicly backs the emperor, and his claim carries more weight.',
+              effects: [{ resource: 'legitimacy', delta: 3 }],
+            },
+            {
+              id: 'authority-eastern-doubts',
+              when: { flag: 'vandal-treaty' },
+              explanation:
+                'Because the court made a separate peace with Gaiseric, Constantinople withholds its support, and the emperor’s claim carries less weight.',
+              effects: [{ resource: 'legitimacy', delta: -3 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'loyal-administration',
+              dueYear: 475,
+              hint: 'Loyal officials may collect taxes more faithfully, if the court’s standing holds.',
+              condition: { resource: 'legitimacy', min: 35 },
+              explanation: 'With the court’s standing secure, its new officials collected taxes more faithfully.',
+              lapsedExplanation: 'The court’s standing was too weak for its new officials to collect much more than before.',
+              effects: [{ resource: 'economy', delta: 4 }],
+            },
+            {
+              id: 'centralisation-resisted',
+              dueYear: 476,
+              hint: 'If the empire stays divided, the commanders and provincial leaders who lost power may refuse the court’s orders.',
+              condition: { resource: 'unity', below: 30 },
+              explanation:
+                'Commanders and provinces that had lost their independence refused the court’s orders, and some troops went with them.',
+              lapsedExplanation: 'The empire was united enough that those who lost power to the court accepted it.',
+              effects: [{ resource: 'military', delta: -6 }],
+              mapCues: [{ kind: 'pressure', regions: ['gaul', 'hispania', 'illyricum'], tone: 'loss', label: 'Provinces refuse the court’s orders' }],
+            },
+          ],
+          flagsSet: ['central-authority'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'gain', label: 'The court reasserts its authority' }],
+          narrative: {
+            ...D4_SITUATION,
+            ordered:
+              'You ordered appointments, revenue and the command of the army brought back under the emperor, and recalled the commanders who had been acting on their own.',
+            effect:
+              'The emperor governs again rather than merely reigning. Revenue that had stayed in other hands reaches the treasury, and the court’s orders carry weight. The price is division: men used to ruling their own commands now have reason to wish the court weaker.',
+            effectVariants: [
+              {
+                when: { flag: 'joined-expedition' },
+                text: 'The emperor governs again rather than merely reigning, and Constantinople’s public support makes his claim hard to dispute. Revenue reaches the treasury and the court’s orders carry weight. The price is division: men used to ruling their own commands now have reason to wish the court weaker.',
+              },
+              {
+                when: { flag: 'vandal-treaty' },
+                text: 'The court has reclaimed appointments and revenue, but without Constantinople’s backing its claim rests on its own strength alone — and the men who lost their independence know it.',
+              },
+            ],
+            stakeholders: [
+              { id: 'court-officials', group: 'Officials loyal to the court', impact: 'gains', text: 'Offices and influence return to men who owe them to the emperor.' },
+              { id: 'commanders', group: 'Army commanders', impact: 'loses', text: 'Commanders who acted on their own lose their independence and some of their troops.' },
+              { id: 'provincial-leaders', group: 'Provincial leaders', impact: 'loses', text: 'They lose the freedom to govern their regions as they saw fit.' },
+              {
+                id: 'eastern-court',
+                group: 'The eastern court',
+                impact: 'gains',
+                text: 'Constantinople gains a Western emperor who governs, and who remembers who stood with him.',
+                when: { flag: 'joined-expedition' },
+              },
+            ],
+            uncertainty:
+              'Authority taken back by order must be held by force or by consent. If the empire stays divided, the men who lost power may refuse to obey, and the court now has fewer soldiers of its own.',
+            uncertaintyVariants: [
+              {
+                when: { resource: 'unity', below: 30 },
+                text: 'The empire was already divided before this decision, and it is more divided now. The commanders and provinces that lost power to the court may soon refuse to obey it, and the court has fewer soldiers of its own.',
+              },
+            ],
+          },
+          nextEventId: 'checkpoint-d5',
+        },
+        {
+          id: 'bargain-with-regions',
+          label: 'Strike a bargain with the regional powers',
+          rationale:
+            'Negotiate with the great landowners, the provincial leaders and the federate kings: offices, tax relief and a voice in the council, in exchange for recognising the emperor and keeping the peace. Negotiated survival rather than command — the court stays, but shares its power.',
+          outcome:
+            'The court traded offices, tax relief and a voice in its council for the recognition of the regional powers. The empire held together by agreement; the court gave up revenue and some of its troops to the regions.',
+          warning: 'The bargain holds only while the court can keep its side of it.',
+          effects: [
+            { resource: 'unity', delta: 6 },
+            { resource: 'legitimacy', delta: 4 },
+            { resource: 'economy', delta: -6 },
+            { resource: 'military', delta: -2 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'bargain-landowner-loans',
+              when: { resource: 'economy', below: 15 },
+              explanation:
+                'Because the treasury is all but empty, the great landowners lend the court money as part of the bargain — in return for collecting local taxes themselves.',
+              effects: [{ resource: 'economy', delta: 10 }],
+            },
+            {
+              id: 'bargain-recognition',
+              when: { resource: 'legitimacy', below: 15 },
+              explanation:
+                'Because the court’s standing had collapsed, the regional powers’ public recognition of the emperor counts for more than usual.',
+              effects: [{ resource: 'legitimacy', delta: 4 }],
+            },
+            {
+              id: 'bargain-loyal-provinces',
+              when: { flag: 'africa-abandoned' },
+              explanation:
+                'Because the court gave up Africa to defend the provinces it still holds, their leaders are ready to deal.',
+              effects: [{ resource: 'unity', delta: 3 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'regional-levies',
+              dueYear: 475,
+              hint: 'Under the bargain, the regional powers may raise troops of their own.',
+              explanation: 'Under the bargain, the regional powers raised troops of their own for the common defence.',
+              effects: [{ resource: 'military', delta: 3 }],
+              mapCues: [{ kind: 'emphasis', regions: ['gaul', 'hispania'], tone: 'gain', label: 'Regional levies' }],
+            },
+            {
+              id: 'bargain-strains',
+              dueYear: 476,
+              hint: 'If the court cannot pay what it promised, its partners may stop treating it as their ruler.',
+              condition: { resource: 'economy', below: 20 },
+              explanation: 'Unable to pay what it had promised, the court lost the respect of its partners in the bargain.',
+              lapsedExplanation: 'The court kept its side of the bargain, and its partners kept theirs.',
+              effects: [{ resource: 'legitimacy', delta: -6 }],
+            },
+          ],
+          flagsSet: ['regional-bargain'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy', 'gaul', 'hispania'], tone: 'neutral', label: 'Power shared by agreement' }],
+          narrative: {
+            ...D4_SITUATION,
+            ordered:
+              'You sent envoys to the great landowners, the provincial leaders and the federate kings, offering offices, tax relief and a voice in the council in exchange for their recognition of the emperor.',
+            effect:
+              'The empire survives by negotiation rather than command. The regional powers now have a stake in its survival, and the court’s standing rises with their recognition — but it has given away revenue and some of its soldiers, and governs only as far as its partners agree.',
+            effectVariants: [
+              {
+                when: { resource: 'economy', below: 15 },
+                text: 'Negotiated survival: with the treasury empty, the court had little to offer but titles, so it gave the landowners the right to collect local taxes in exchange for loans. The money keeps the court afloat for now, but part of the empire’s revenue now belongs to its creditors.',
+              },
+              {
+                when: { resource: 'legitimacy', below: 15 },
+                text: 'Negotiated survival: with its standing collapsed, the court could not command, so it asked for recognition instead and got it, at the price of a share in its power. The emperor reigns because the regional powers agree that he should.',
+              },
+            ],
+            stakeholders: [
+              { id: 'regional-elites', group: 'Great landowners and provincial leaders', impact: 'gains', text: 'They gain offices, tax relief and a voice in the council.' },
+              { id: 'court', group: 'The imperial court', impact: 'loses', text: 'It gives up revenue and the power to rule alone.' },
+              { id: 'army', group: 'The army', impact: 'mixed', text: 'Some soldiers pass to regional commanders; the rest serve a court that can no longer pay for them alone.' },
+              {
+                id: 'federates',
+                group: 'Federate kings',
+                impact: 'gains',
+                text: 'They are treated as partners in the empire rather than as subjects.',
+                when: { flag: 'federates-settled' },
+              },
+              {
+                id: 'creditors',
+                group: 'Landowners who lent the court money',
+                impact: 'gains',
+                text: 'They now collect local taxes themselves.',
+                when: { resource: 'economy', below: 15 },
+              },
+            ],
+            uncertainty:
+              'A bargain is only as strong as the court’s ability to keep its side. If the treasury cannot pay what was promised, the partners may decide they no longer need an emperor.',
+            uncertaintyVariants: [
+              {
+                when: { resource: 'economy', below: 15 },
+                text: 'The loans must be repaid, and the landowners now control part of the revenue that would repay them. If the treasury stays this poor, the court’s partners may soon treat it as a debtor rather than a ruler.',
+              },
+            ],
+          },
+          nextEventId: 'checkpoint-d5',
+        },
+        {
+          id: 'rule-through-commander',
+          label: 'Rule through the army’s commander',
+          rationale:
+            'Make the commander of the army the emperor’s guardian, with full power to keep order and defend Italy. Order returns quickly and the army is satisfied; the emperor becomes a figurehead, and the commander holds the real power — including the power to choose emperors.',
+          outcome:
+            'The commander of the army took charge of the government in the emperor’s name. Order returned and the army was content; the emperor reigned, but no longer ruled.',
+          warning: 'Temporary stabilisation: whoever commands the army can unmake the emperor.',
+          prerequisites: [{ resource: 'military', min: 50 }],
+          effects: [
+            { resource: 'military', delta: 6 },
+            { resource: 'unity', delta: 4 },
+            { resource: 'legitimacy', delta: -8 },
+            { resource: 'economy', delta: -5 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'commander-field-army',
+              when: { flag: 'field-army' },
+              explanation: 'Because you built a mobile field army, the commander has a strong, loyal force ready to hand.',
+              effects: [{ resource: 'military', delta: 3 }],
+            },
+            {
+              id: 'commander-quiet-sea',
+              when: { flag: 'vandal-treaty' },
+              explanation:
+                'Because the treaty keeps the Vandal fleet quiet, the commander can keep the whole army in Italy instead of watching the coasts.',
+              effects: [{ resource: 'military', delta: 3 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'commander-ambition',
+              dueYear: 475,
+              hint: 'If the emperor’s standing falls too low, the commander may decide to choose a different emperor.',
+              condition: { resource: 'legitimacy', below: 25 },
+              explanation:
+                'With the emperor’s standing so low, the commander replaced the emperor’s ministers with his own men and let it be known that emperors could be changed.',
+              lapsedExplanation: 'The emperor kept enough standing that the commander did not dare challenge him openly.',
+              effects: [
+                { resource: 'legitimacy', delta: -6 },
+                { resource: 'unity', delta: -4 },
+              ],
+              mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'loss', label: 'The commander overshadows the emperor' }],
+            },
+            {
+              id: 'army-arrears',
+              dueYear: 476,
+              hint: 'An army that runs the government expects to be paid; if the money runs out, soldiers may desert.',
+              condition: { resource: 'economy', below: 15 },
+              explanation: 'With the treasury empty, the army’s pay fell into arrears and soldiers deserted.',
+              lapsedExplanation: 'The treasury found enough to keep the army paid.',
+              effects: [{ resource: 'military', delta: -6 }],
+            },
+          ],
+          flagsSet: ['commander-rules'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'uncertain', label: 'The commander takes charge in Italy' }],
+          narrative: {
+            ...D4_SITUATION,
+            ordered: 'You made the commander of the army the emperor’s guardian, with full power to keep order and defend Italy.',
+            effect:
+              'Order returns quickly. The army is content and the provinces see soldiers on the roads again. But everyone now knows where power lies: the emperor’s name is on the decrees, and the commander decides what they say.',
+            effectVariants: [
+              {
+                when: { resource: 'legitimacy', below: 15 },
+                text: 'Temporary stabilisation: the court’s standing had already collapsed, so the commander’s soldiers now do what the emperor’s orders could not. The empire is calmer, but the emperor is a figurehead in all but name, and his standing has fallen further still.',
+              },
+              {
+                when: { flag: 'field-army' },
+                text: 'Order returns quickly: the commander takes over a mobile field army that is strong and loyal to him. The army is content and the provinces see soldiers on the roads again — but the emperor’s name is on the decrees, and the commander decides what they say.',
+              },
+            ],
+            stakeholders: [
+              { id: 'commander', group: 'The commander of the army', impact: 'gains', text: 'He gains the real power of government.' },
+              { id: 'soldiers', group: 'The soldiers', impact: 'gains', text: 'They are paid first and honoured.' },
+              { id: 'emperor', group: 'The emperor', impact: 'loses', text: 'He keeps his title but loses his power.' },
+              { id: 'senate', group: 'The Senate and civil officials', impact: 'loses', text: 'They lose influence to the army.' },
+            ],
+            uncertainty:
+              'Stability that rests on one man lasts as long as he is loyal, alive and paid. If the emperor’s standing falls further, the commander may choose another emperor; if the money runs out, the army may not stay loyal to him either.',
+            uncertaintyVariants: [
+              {
+                when: { resource: 'economy', below: 15 },
+                text: 'The army expects to be paid, and the treasury is all but empty. Unless money is found, the soldiers who restored order may desert the commander — and the commander may desert the emperor.',
+              },
+            ],
+          },
+          nextEventId: 'checkpoint-d5',
         },
       ],
     },
     {
       kind: 'terminal',
-      id: 'checkpoint-d4',
-      year: 471,
+      id: 'checkpoint-d5',
+      year: 474,
       yearApproximate: true,
       status: 'in-development',
-      title: 'Next: imperial legitimacy, c. 470–474',
+      title: 'Next: the final crisis, c. 475–476',
       summary:
-        'Decision 4 has not been written yet. Your choices, their effects and the consequences still to come are recorded; this branch continues in the next development milestone.',
+        'Decision 5 has not been written yet. Your choices, their effects and the consequences still to come are recorded; this branch continues in the next development milestone.',
     },
   ],
 });

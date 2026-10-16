@@ -268,24 +268,41 @@ const IMPACT_STYLE = {
   mixed: 'border-gold text-gold',
 } as const;
 
-/** The authored, state-dependent report on a decision. Fiction, never presented as sourced history. */
+/**
+ * The authored, state-dependent report on a decision: situation, decision,
+ * influence, immediate consequences, remaining risks. Every line was chosen
+ * from the game state before the choice; all of it is fiction, never sourced history.
+ */
 function NarrativeReport({ narrative }: { narrative: ResolvedNarrative }) {
   return (
     <div className="mt-4 max-w-[40rem] border border-dashed border-burgundy-bright/40 p-4" data-testid="narrative-report">
       <p className="font-sans text-xs font-semibold text-parchment-muted">
-        Report to the council — invented for this alternate timeline, not sourced history
+        Report to the council — fictional alternate history, invented for this game, not sourced history
       </p>
       <dl className="mt-2 space-y-3 text-[0.9375rem]">
+        {narrative.situation ? (
+          <div>
+            <dt className="font-sans text-xs font-semibold text-gold">The political situation</dt>
+            <dd className="mt-0.5">{narrative.situation}</dd>
+            {narrative.situationNotes && narrative.situationNotes.length > 0 ? (
+              <dd className="mt-1">
+                <ul className="space-y-1 font-sans text-sm text-parchment-muted" data-testid="situation-notes">
+                  {narrative.situationNotes.map((note) => (
+                    <li key={note} className="border-l-2 border-rule pl-2">
+                      {note}
+                    </li>
+                  ))}
+                </ul>
+              </dd>
+            ) : null}
+          </div>
+        ) : null}
         <div>
-          <dt className="font-sans text-xs font-semibold text-gold">Your orders</dt>
+          <dt className="font-sans text-xs font-semibold text-gold">Your decision</dt>
           <dd className="mt-0.5">{narrative.ordered}</dd>
         </div>
         <div>
-          <dt className="font-sans text-xs font-semibold text-gold">Effect on the empire</dt>
-          <dd className="mt-0.5">{narrative.effect}</dd>
-        </div>
-        <div>
-          <dt className="font-sans text-xs font-semibold text-gold">Who gains and who loses</dt>
+          <dt className="font-sans text-xs font-semibold text-gold">Who gains and who loses influence</dt>
           <dd className="mt-1">
             <ul className="space-y-1.5">
               {narrative.stakeholders.map((item) => (
@@ -304,7 +321,11 @@ function NarrativeReport({ narrative }: { narrative: ResolvedNarrative }) {
           </dd>
         </div>
         <div>
-          <dt className="font-sans text-xs font-semibold text-gold">Still uncertain</dt>
+          <dt className="font-sans text-xs font-semibold text-gold">Immediate consequences</dt>
+          <dd className="mt-0.5">{narrative.effect}</dd>
+        </div>
+        <div>
+          <dt className="font-sans text-xs font-semibold text-gold">Risks that remain</dt>
           <dd className="mt-0.5">{narrative.uncertainty}</dd>
         </div>
       </dl>

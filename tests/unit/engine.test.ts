@@ -9,11 +9,12 @@ import {
   evaluateChoices,
   getCurrentNode,
   replay,
+  resolveNarrative,
   totalPerResource,
 } from '../../src/features/simulation/engine';
 import { validateScenario } from '../../src/features/simulation/validateScenario';
 import { deepFreeze } from '../../src/lib/freeze';
-import type { AlternateScenario, SimulationState } from '../../src/types/simulation';
+import type { AlternateScenario, ChoiceNarrative, SimulationState } from '../../src/types/simulation';
 
 /**
  * Generic engine behaviour on a small fixture: clamping, prerequisites,
@@ -371,9 +372,92 @@ describe('determinism and immutability', () => {
   });
 });
 
+describe('resolveNarrative', () => {
+  const narrative: ChoiceNarrative = {
+    situation: 'Default situation.',
+    situationVariants: [
+      { when: { resource: 'economy', below: 10 }, text: 'Broke.' },
+      { when: { resource: 'economy', min: 90 }, text: 'Rich.' },
+      { when: { resource: 'unity', min: 50 }, text: 'United (never reached: an earlier variant matched).' },
+    ],
+    situationNotes: [
+      { when: { flag: 'chose-boom' }, text: 'Note A.' },
+      { when: { flag: 'chose-bust' }, text: 'Note B.' },
+      { when: { resource: 'unity', min: 50 }, text: 'Note C.' },
+    ],
+    ordered: 'You did it.',
+    effect: 'Effect.',
+    stakeholders: [
+      { id: 'x', group: 'X', impact: 'gains', text: 'x' },
+      { id: 'y', group: 'Y', impact: 'loses', text: 'y' },
+    ],
+    uncertainty: 'Unknown.',
+  };
+
+  it('takes the first matching situation variant but every matching note, in authored order', () => {
+    const state: SimulationState = { ...createInitialState(fixture), flags: ['chose-boom'] };
+    const resolved = resolveNarrative(fixture, state, narrative);
+    expect(resolved.situation).toBe('Rich.');
+    expect(resolved.situationNotes).toEqual(['Note A.', 'Note C.']);
+  });
+
+  it('falls back to the default situation and gives an empty list when no note applies', () => {
+    const state: SimulationState = {
+      ...createInitialState(fixture),
+      resources: { economy: 50, military: 5, unity: 10, legitimacy: 50 },
+    };
+    const resolved = resolveNarrative(fixture, state, narrative);
+    expect(resolved.situation).toBe('Default situation.');
+    expect(resolved.situationNotes).toEqual([]);
+  });
+
+  it('leaves the situation out entirely for reports written without one', () => {
+    const plain: ChoiceNarrative = {
+      ordered: narrative.ordered,
+      effect: narrative.effect,
+      stakeholders: narrative.stakeholders,
+      uncertainty: narrative.uncertainty,
+    };
+    const resolved = resolveNarrative(fixture, createInitialState(fixture), plain);
+    expect('situation' in resolved).toBe(false);
+    expect('situationNotes' in resolved).toBe(false);
+  });
+});
+
 describe('validateScenario', () => {
   it('accepts the fixture', () => {
     expect(validateScenario(fixture)).toEqual([]);
+  });
+
+  it('rejects situation notes without a default situation', () => {
+    const withNotes: AlternateScenario = {
+      ...fixture,
+      nodes: fixture.nodes.map((node) =>
+        node.kind === 'decision' && node.id === 'a'
+          ? {
+              ...node,
+              choices: node.choices.map((choice, index) =>
+                index === 0
+                  ? {
+                      ...choice,
+                      narrative: {
+                        situationNotes: [{ when: { flag: 'chose-boom' }, text: 'Note.' }],
+                        ordered: 'You did it.',
+                        effect: 'Effect.',
+                        stakeholders: [
+                          { id: 'x', group: 'X', impact: 'gains', text: 'x' },
+                          { id: 'y', group: 'Y', impact: 'loses', text: 'y' },
+                        ],
+                        uncertainty: 'Unknown.',
+                      },
+                    }
+                  : choice,
+              ),
+            }
+          : node,
+      ),
+    };
+    expect(validateScenario(withNotes).join('\n')).toMatch(/situation variants or notes need a default situation/);
   });
 
   it('requires a change note for the current version', () => {

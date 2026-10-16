@@ -89,6 +89,17 @@ const timeline: Timeline = {
       role: 'playable-window',
     },
     {
+      id: 'anthemius-467',
+      date: { year: 467, precision: 'year' },
+      title: 'Constantinople sends Anthemius to rule the West',
+      summary:
+        'After almost two years without a Western emperor, the eastern emperor Leo I sends Anthemius to Italy with an army, and he is proclaimed emperor near Rome in April. Ricimer, the general who had made and unmade Western emperors since 456, accepts him and marries his daughter Alypia.',
+      sourceIds: ['britannica-ricimer', 'wiki-anthemius', 'wiki-ricimer'],
+      certainty: 'well-attested',
+      caveat: 'The sources consulted give 12 or 14 April 467 for the proclamation.',
+      role: 'playable-window',
+    },
+    {
       id: 'cape-bon-468',
       date: { year: 468, precision: 'year' },
       title: 'Expedition against the Vandals fails at Cape Bon',
@@ -98,6 +109,42 @@ const timeline: Timeline = {
       certainty: 'well-attested',
       caveat:
         'Ancient figures for the fleet, the army and the cost vary widely and are partly emended by modern scholars; no single figure should be treated as precise.',
+      role: 'playable-window',
+    },
+    {
+      id: 'gaul-defeat-471',
+      date: { year: 471, precision: 'approximate' },
+      title: 'The Visigoths destroy an imperial army in southern Gaul',
+      summary:
+        'Anthemius tries to halt the expansion of Euric, king of the Visigoths and still formally an ally of Rome. British allies under Riothamus are defeated, and then an army sent from Italy, nominally led by Anthemius’ son Anthemiolus, is destroyed in southern Gaul and its commanders killed. Euric goes on to take most of Hispania and land in Gaul.',
+      sourceIds: ['wiki-anthemius', 'wiki-euric', 'britannica-euric'],
+      certainty: 'approximate',
+      caveat:
+        'The date and place of the defeat are uncertain; it is often placed near Arles in 471. The sources consulted disagree on details, and one does not mention Anthemiolus.',
+      role: 'playable-window',
+    },
+    {
+      id: 'ricimer-overthrows-anthemius-472',
+      date: { year: 472, month: 7, day: 11, precision: 'day' },
+      title: 'Ricimer overthrows Anthemius',
+      summary:
+        'The quarrel between Anthemius and Ricimer, his general and son-in-law, turns into open war. Ricimer besieges Rome for months and raises Olybrius, a senator from Constantinople, as a rival emperor. Starved, the city falls; Anthemius is caught and beheaded on 11 July. Constantinople does not recognise Olybrius.',
+      sourceIds: ['britannica-ricimer', 'wiki-ricimer', 'wiki-anthemius', 'wiki-olybrius'],
+      certainty: 'contested',
+      caveat:
+        'Sources disagree on when Olybrius was proclaimed (spring or July 472), on why — one account has Ricimer intercept a secret letter from Leo I — and on whether Ricimer or his nephew Gundobad had Anthemius killed, and where.',
+      role: 'playable-window',
+    },
+    {
+      id: 'ricimer-olybrius-die-472',
+      date: { year: 472, precision: 'year' },
+      title: 'Ricimer and Olybrius die; Gundobad takes command',
+      summary:
+        'Ricimer dies of illness in August, about six weeks after Anthemius, and his nephew Gundobad succeeds him as patrician and commander of the army in Italy. Olybrius dies in the autumn after about seven months as emperor, and the Western throne is empty again.',
+      sourceIds: ['britannica-ricimer', 'wiki-ricimer', 'wiki-olybrius'],
+      certainty: 'well-attested',
+      caveat:
+        'The sources give 18 or 19 August for Ricimer’s death and 23 October or 2 November for Olybrius’.',
       role: 'playable-window',
     },
     {

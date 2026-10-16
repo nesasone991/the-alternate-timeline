@@ -333,7 +333,16 @@ export function resolveNarrative(
 ): ResolvedNarrative {
   const pick = (fallback: string, variants: ChoiceNarrative['effectVariants']) =>
     variants?.find((variant) => checkRequirement(scenario, state, variant.when).met)?.text ?? fallback;
+  const holds = (when: Requirement) => checkRequirement(scenario, state, when).met;
+  const situation =
+    narrative.situation === undefined
+      ? {}
+      : {
+          situation: pick(narrative.situation, narrative.situationVariants),
+          situationNotes: (narrative.situationNotes ?? []).filter((note) => holds(note.when)).map((note) => note.text),
+        };
   return {
+    ...situation,
     ordered: narrative.ordered,
     effect: pick(narrative.effect, narrative.effectVariants),
     stakeholders: narrative.stakeholders

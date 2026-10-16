@@ -26,7 +26,7 @@ describe('serializeSave', () => {
       format: SAVE_FORMAT,
       formatVersion: 1,
       scenarioId: 'rome-alternate',
-      scenarioVersion: 3,
+      scenarioVersion: 4,
       savedAt: '2026-10-15T20:00:00.000Z',
       choices: ['reform-taxation', 'hold-italy'],
     });
@@ -76,30 +76,51 @@ describe('parseSave', () => {
     expect(parseSave(rome, saveWith({ scenarioId: 'napoleon' })).status).toBe('incompatible');
   });
 
-  it('explains why a version 2 save (Decisions 1–2 only) cannot be loaded', () => {
-    // A real version 2 save: the same choice ids exist, but the rules changed,
-    // so replaying them would silently give different numbers. It is refused.
+  it('explains why a version 3 save (Decisions 1–3, ending at the old checkpoint) cannot be loaded', () => {
+    // A real version 3 save: the same choice ids exist, but in version 3 the
+    // game stopped after Decision 3 and nothing due in 472 had happened yet.
+    // Replaying it now would silently land somewhere else, so it is refused.
+    const v3 = parseSave(rome, saveWith({ scenarioVersion: 3, choices: ['pay-the-armies', 'hold-italy', 'join-expedition'] }));
+    expect(v3.status).toBe('incompatible');
+    if (v3.status !== 'incompatible') return;
+    expect(v3.reason).toContain('earlier version of this campaign (version 3; this is version 4)');
+    expect(v3.reason).toContain('cannot be replayed exactly');
+    expect(v3.reason).toContain('Version 4: Decision 4, imperial legitimacy');
+    expect(v3.reason).not.toContain('Version 3:');
+  });
+
+  it('lists every change since an older save', () => {
     const v2 = parseSave(rome, saveWith({ scenarioVersion: 2, choices: ['reform-taxation', 'field-army'] }));
-    expect(v2.status).toBe('incompatible');
-    if (v2.status !== 'incompatible') return;
-    expect(v2.reason).toContain('earlier version of this campaign (version 2; this is version 3)');
-    expect(v2.reason).toContain('cannot be replayed exactly');
-    expect(v2.reason).toContain('Version 3: Decision 3, North African policy');
-    expect(v2.reason).not.toContain('Version 2:');
+    if (v2.status !== 'incompatible') throw new Error('expected incompatible');
+    expect(v2.reason).toContain('(version 2; this is version 4)');
+    expect(v2.reason).toMatch(/Version 3: Decision 3.*Version 4: Decision 4/);
   });
 
   it('explains newer and unlabelled saves differently', () => {
     const newer = parseSave(rome, saveWith({ scenarioVersion: 9 }));
-    if (newer.status === 'incompatible') expect(newer.reason).toMatch(/newer than this site's version 3/);
+    if (newer.status === 'incompatible') expect(newer.reason).toMatch(/newer than this site's version 4/);
     else throw new Error('expected incompatible');
     const unlabelled = parseSave(rome, saveWith({ scenarioVersion: '3' }));
     if (unlabelled.status === 'incompatible') expect(unlabelled.reason).toMatch(/does not say which version/);
     else throw new Error('expected incompatible');
   });
 
-  it('rejects a blocked decision 3 combination', () => {
-    const blocked = parseSave(rome, saveWith({ choices: ['reform-taxation', 'hold-italy', 'join-expedition'] }));
-    expect(blocked.status).toBe('corrupt');
+  it('rejects blocked decision 3 and decision 4 combinations', () => {
+    expect(parseSave(rome, saveWith({ choices: ['reform-taxation', 'hold-italy', 'join-expedition'] })).status).toBe('corrupt');
+    expect(
+      parseSave(rome, saveWith({ choices: ['provincial-revenue', 'field-army', 'join-expedition', 'restore-imperial-authority'] }))
+        .status,
+    ).toBe('corrupt');
+  });
+
+  it('restores a decision 4 save exactly, including the report and what is still to come', () => {
+    const path = ['provincial-revenue', 'field-army', 'join-expedition', 'bargain-with-regions'];
+    const loaded = parseSave(rome, saveWith({ choices: path }));
+    if (loaded.status !== 'restored') throw new Error('expected restored');
+    expect(loaded.state.currentEventId).toBe('checkpoint-d5');
+    expect(loaded.state.resources).toEqual({ economy: 10, military: 49, unity: 55, legitimacy: 37 });
+    expect(loaded.state.records[3]!.narrative!.situation).toMatch(/treasury is all but empty/);
+    expect(JSON.stringify(loaded.state)).toBe(JSON.stringify(replay(rome, path)));
   });
 
   it('rejects malformed or invalid choice lists', () => {

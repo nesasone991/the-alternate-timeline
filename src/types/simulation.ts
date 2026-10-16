@@ -92,6 +92,17 @@ export type Stakeholder = {
  * variant and stakeholder line is selected by the state, never at random.
  */
 export type ChoiceNarrative = {
+  /**
+   * The political situation the decision was taken in. Optional so earlier
+   * decisions' reports stay valid; required by the Rome tests from Decision 4.
+   */
+  readonly situation?: string;
+  readonly situationVariants?: readonly NarrativeVariant[];
+  /**
+   * Notes on what earlier decisions and current conditions add to the
+   * situation. Unlike variants, EVERY note whose condition holds is shown, in order.
+   */
+  readonly situationNotes?: readonly NarrativeVariant[];
   /** What the player ordered. */
   readonly ordered: string;
   /** How it affects the empire. */
@@ -106,6 +117,8 @@ export type ChoiceNarrative = {
 
 /** The narrative as it actually applied, frozen into the record. */
 export type ResolvedNarrative = {
+  readonly situation?: string;
+  readonly situationNotes?: readonly string[];
   readonly ordered: string;
   readonly effect: string;
   readonly stakeholders: readonly { readonly id: string; readonly group: string; readonly impact: Stakeholder['impact']; readonly text: string }[];
