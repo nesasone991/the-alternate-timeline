@@ -1,6 +1,6 @@
 # QA checklist
 
-Last updated: 15 Oct 2026, session 4 (Phase 2, milestone 3 — Decision 3).
+Last updated: 16 Oct 2026, session 5 (Phase 2, milestone 4 — Decision 4).
 
 ## What ran where
 
@@ -21,10 +21,12 @@ Last updated: 15 Oct 2026, session 4 (Phase 2, milestone 3 — Decision 3).
 | **38809509527** | `3928ed0` | ✅ `npm ci` | ✅ | ✅ | ✅ **115/115** | ✅ | ✅ **22/22** | **Session 4 milestone (Decision 3); passed on the first CI run** |
 | 38809861059 | `441f225` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ❌ 21/22 | **Intermittent failure** in a session-3 test: *mobile: every header page loads* timed out. Cause: the phone menu closed in an effect one frame after navigation; the test helper sampled the toggle in that frame, skipped opening the menu and waited on a hidden link. Not reproduced in 40 local repeats (faster machine); cause confirmed from the code. |
 | **38810346645** | `6b94b0a` | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ✅ 22/22 | **Fix:** menu links close the menu in the same update as the navigation; the helper waits for `aria-expanded="false"` before opening. Also 66/66 locally (suite ×3). |
+| 38810557901 | `8fa1c6b` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 115/115 | ✅ | ✅ 22/22 | End of session 4 |
+| **38946100373** | `00029a0` | ✅ `npm ci` | ✅ | ✅ | ✅ **139/139** | ✅ | ✅ **24/24** | **Session 5 milestone (Decision 4); passed on the first CI run** |
 
-Vitest breakdown (run 38809509527): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 22/22 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 24/24 · `unit/savegame.test.ts` 14/14 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 6/6.
+Vitest breakdown (run 38946100373): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 26/26 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 41/41 · `unit/savegame.test.ts` 16/16 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 7/7.
 
-Playwright (run 38809509527), each in **desktop** (1440×900) and **mobile** (Pixel 7):
+Playwright (run 38946100373), each in **desktop** (1440×900) and **mobile** (Pixel 7):
 
 | Spec | Desktop | Mobile |
 | --- | --- | --- |
@@ -33,14 +35,33 @@ Playwright (run 38809509527), each in **desktop** (1440×900) and **mobile** (Pi
 | Buttons, icon buttons and tabs are at least 44 px tall | ✅ | ✅ |
 | Real ↔ Alternate History switching keeps each mode working; Comparison explained and disabled | ✅ | ✅ |
 | Sourced-context link in a decision opens that event in Real History | ✅ | ✅ |
-| Complete D1, D2 and D3 with exact resources (25/67/21/39 at D3 after the 468 consequence; 18/61/21/45 after joining the expedition); order-of-events box; narrative report; refresh restores everything; Start over resets and clears the save | ✅ | ✅ |
-| A D3 option blocked by earlier choices explains why (Military 49 < 50); a lapsed 468 consequence is shown with "No effect."; treaty report uses the garrisoned-coasts variant | ✅ | ✅ |
+| Complete D1–D4 with exact resources (25/67/21/39 at D3; 13/61/21/45 at D4 after the 472 debts; 18/57/14/56 after restoring authority); order-of-events boxes for 468 and 472; D3 → D4 conditional shown; report with political situation, notes, influence, consequences and risks; refresh restores everything; Start over resets and clears the save | ✅ | ✅ |
+| A D3 option blocked by earlier choices explains why (Military 49 < 50); a lapsed 468 consequence and a lapsed 472 consequence (treaty does not hold) are shown; the commander option at D4 is blocked with its reason | ✅ | ✅ |
+| Empty treasury at D4: the 472 debts are capped at 0; restoring authority is blocked ("Economy 10 or more (you have 0)"); the bargain brings landowner loans (Economy 10) and its report and later strain are shown | ✅ | ✅ |
 | Changing your mind before confirming changes nothing | ✅ | ✅ |
 | Damaged save: reported, kept until discarded, page keeps working | ✅ | ✅ |
-| A real version 2 save is refused: "earlier version of this campaign (version 2; this is version 3)" plus the v3 change note | ✅ | ✅ |
+| A real version 3 save is refused: "earlier version of this campaign (version 3; this is version 4)" plus the v4 change note | ✅ | ✅ |
 | Keyboard only: arrow keys select, Enter confirms | ✅ | ✅ |
 
-Build (CI, disk size): main JS 344 kB, workspace chunk 36 kB (lazy), CSS 36 kB.
+Build (CI, disk size): main JS 368 kB, workspace chunk 36 kB (lazy), CSS 36 kB.
+
+## Milestone 4 checks (Decision 4)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| All 81 theoretical D1 × D2 × D3 × D4 combinations match an independent reference model exactly (state at D3, at D4, final, pending consequences, refusal message): **54 valid**, **9 blocked at D2**, **9 blocked at D3**, **9 blocked at D4** (restoring authority: Legitimacy 11, 8, 8 < 15 or Economy 0, 7 < 10; commander: Military 49, 49, 46, 46 < 50) | ✅ | CI (unit) |
+| `enumeratePaths` returns exactly the 54 valid paths; each ends at the D5 checkpoint (c. 474), resources integers within 0–100, four records, only post-474 consequences pending | ✅ | CI (unit) |
+| All 21 states reaching D4 have at least two options; the bargain is always available | ✅ | CI (unit) |
+| Every 472 consequence resolves on arrival at D4 (year 472), before the choice: treaty holds triggered (Military 67) and lapsed (Military 49, no effect); resentment and expedition debts always land; debts capped at 0 from Economy 1 (requested −5, applied −1); nothing due after giving up Africa | ✅ | CI (unit + Playwright) |
+| Every D4 option reacts to D3 (eastern backing / eastern doubts / quiet sea / loyal provinces) | ✅ | CI (unit + Playwright) |
+| No D3 or D4 option is better than another on every resource, from any reachable state | ✅ | CI (unit) |
+| Recovery: Economy 0 → bargain to 10 with loans, still costs Military 2 and leaves the 476 strain pending; Legitimacy 8 → bargain to 16 (Negotiated survival) or commander to 0 (Temporary stabilisation, commander's ambition pending); arrival states are exactly what earlier choices produced (no hidden rescue) | ✅ | CI (unit + Playwright) |
+| Reports: every D4 report has situation, decision, gains and losses, consequences and risks; deterministic; situation variants for collapsed standing and empty treasury; notes for the expedition, the treaty, Africa, Italy, field army, federates and a strong army; effect and risk variants; conditional groups | ✅ | CI (unit + component + Playwright) |
+| `resolveNarrative`: first matching situation variant, every matching note in order, no situation fields for older reports; validator rejects notes without a default situation | ✅ | CI (unit) |
+| Event stream: 472 consequences (including a lapsed one) between the D3 and D4 decision events; D4 event carries the situation and map cues; deterministic | ✅ | CI (unit) |
+| Saves: v3 save refused with the v4 change note; v2 save lists v3 and v4 changes; blocked D4 combination rejected; D4 save restores byte-identically with its report | ✅ | CI (unit + Playwright) |
+| Actual-history dataset unchanged; four new events in chronological order with caveats | ✅ | CI (unit) |
+| Visual check of D4 turn and report at 1440 px and 360 px | ✅ | Sandbox screenshots + Playwright overflow check |
 
 ## Milestone 3 checks (Decision 3)
 
@@ -95,6 +116,8 @@ npm run test:e2e                  # end-to-end, desktop and mobile
 npm run dev                       # http://localhost:5173/campaigns/fall-of-rome/workspace?mode=alternate
 ```
 
-By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Decision 3 (c. 468) opens with "Order of events in c. 468" and the provinces-drift consequence already applied (Political Unity 27 → 21); Economy 25, Military 67, Legitimacy 39. Choose **Join the eastern expedition against Carthage** → Economy 18, Military 61, Political Unity 21, Legitimacy 45, and a "Report to the council" marked as fiction. Refresh: the same state comes back. **Start over**: everything resets.
+By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Decision 3 (c. 468) opens with "Order of events in c. 468" and the provinces-drift consequence already applied (Political Unity 27 → 21); Economy 25, Military 67, Legitimacy 39. Choose **Join the eastern expedition against Carthage** → Decision 4 (c. 472) opens with the expedition's debts already applied: Economy 13, Military 61, Political Unity 21, Legitimacy 45, and the Decision 3 report. Choose **Restore the emperor's authority** → Economy 18, Military 57, Political Unity 14, Legitimacy 56, with a report that starts with the political situation. Refresh: the same state comes back. **Start over**: everything resets.
 
-To see the old-save message: in the browser console run `localStorage.setItem('tat.save.rome-alternate', JSON.stringify({format:'the-alternate-timeline/save',formatVersion:1,scenarioId:'rome-alternate',scenarioVersion:2,savedAt:'2026-10-15T20:00:00.000Z',choices:['reform-taxation']}))` and reload.
+Recovery: **Let the provinces keep a share** → **Fund a mobile field army** → **Join the eastern expedition** reaches Decision 4 with Economy 0; restoring authority is locked, and **Strike a bargain with the regional powers** brings Economy back to 10 through landowner loans.
+
+To see the old-save message: in the browser console run `localStorage.setItem('tat.save.rome-alternate', JSON.stringify({format:'the-alternate-timeline/save',formatVersion:1,scenarioId:'rome-alternate',scenarioVersion:3,savedAt:'2026-10-15T20:00:00.000Z',choices:['reform-taxation']}))` and reload.

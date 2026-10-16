@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated:** 15 Oct 2026, end of session 4 (Phase 2, milestone 3 — Decision 3).
+**Last updated:** 16 Oct 2026, end of session 5 (Phase 2, milestone 4 — Decision 4).
 **Read this first in every new session**, then `docs/ARCHITECTURE.md` and the Master Blueprint.
 
 Repository: `github.com/nesasone991/the-alternate-timeline` (private). CI runs on every push to `main`: install, typecheck, lint, Vitest, build, Playwright (desktop + mobile against the production build).
@@ -8,27 +8,27 @@ Repository: `github.com/nesasone991/the-alternate-timeline` (private). CI runs o
 ## Where things stand
 
 - **Phase 1** — done.
-- **Phase 2, milestones 1–2** (engine, D1, D2, delayed consequences, saves, Playwright) — done.
-- **Phase 2, milestone 3** (Decision 3) — done and verified in CI run 38809509527 (commit `3928ed0`): 115/115 Vitest, 22/22 Playwright, typecheck, lint (0 warnings), build. A later docs-only run hit an intermittent mobile-menu timeout in an older navigation test; the race was fixed in the app and the test helper, and CI run 38810346645 (commit `6b94b0a`) is green again (115/115, 22/22). Details: `docs/QA_CHECKLIST.md`.
-- **Decision 4 has not been started**, as instructed. It should start only after the owner has reviewed this milestone.
+- **Phase 2, milestones 1–3** (engine, D1–D3, delayed consequences, saves, reports, event stream, Playwright) — done.
+- **Phase 2, milestone 4** (Decision 4) — done and verified in CI run 38946100373 (commit `00029a0`): 139/139 Vitest, 24/24 Playwright, typecheck, lint (0 warnings), build. Details: `docs/QA_CHECKLIST.md`.
+- **Decision 5 has not been started**, as instructed. It should start only after the owner has reviewed this milestone.
 
 ### Implemented this session
 
-- **Decision 3, North African policy (c. 468)**, set against three sourced events (442 treaty, 461 raids, 468 Cape Bon):
-  - *Join the eastern expedition against Carthage* — needs Military 50; Economy −12, Military −6, Legitimacy +6; +4 Military with a field army; +5 Economy if Military ≥ 60 (islands secured); later: debts (472), Vandal reprisal if Military < 55 (476).
-  - *Negotiate a treaty with Gaiseric* — needs Legitimacy 15; Economy +8, Unity +2, Legitimacy −8; +4 Economy if Italy was garrisoned; later: eastern resentment (472), treaty holds if Military ≥ 50 (472).
-  - *Give up Africa and fortify what remains* — always available; Economy −6, Military +3, Unity +6, Legitimacy −4; +3 Unity with a field army, +3 Military with federates; later: coastal trade dwindles if Military < 55 (476).
-- **All 468 consequences now resolve inside the campaign, before Decision 3**, with an "Order of events in c. 468" box in the UI and a list of what arrived (lapsed ones marked "No effect.").
-- **Narrative reports** for every D3 option: orders, effect on the empire, who gains / loses / mixed (text labels, not colour alone), what is uncertain; chosen deterministically from the pre-choice state; labelled as invented fiction.
-- **Event stream for the future Animation Studio**: `replayWithEvents` → ordered decision and consequence events with map cues on named schematic regions (no geometry).
-- **Two new sourced events** (442, 461) and two sources; Cape Bon summary mentions Marcellinus retaking Sardinia. Timeline: 11 events.
-- **Scenario version 3** (state schema 3). Version 2 saves are refused with an explanation of what changed. Balance changes to D1/D2 are listed in `docs/DECISIONS.md` (D38).
-- Tests: all 27 D1–D3 combinations checked against an independent reference model (21 valid, 3 blocked at D2, 3 blocked at D3); narrative, event stream, save versions; Playwright through D3.
+- **Research and four new sourced events** (timeline now 15 events): Constantinople sends Anthemius (467); the Visigoths destroy an imperial army in southern Gaul (c. 471, approximate); Ricimer overthrows Anthemius (11 July 472, contested details); Ricimer and Olybrius die and Gundobad takes command (472). Five new sources; every disagreement between sources is in a caveat (`docs/HISTORICAL_REVIEW.md`).
+- **Decision 4, Imperial legitimacy (c. 472)**:
+  - *Restore the emperor's authority* — needs Legitimacy 15 and Economy 10; Economy +5, Legitimacy +8, Unity −7, Military −4; Legitimacy +3 after joining the expedition, −3 after a separate treaty; later: loyal administration (475, if Legitimacy ≥ 35), resistance from those who lost power (476, if Unity < 30).
+  - *Strike a bargain with the regional powers* — always available; Unity +6, Legitimacy +4, Economy −6, Military −2; landowner loans (+10 Economy) below Economy 15, recognition (+4 Legitimacy) below Legitimacy 15, +3 Unity after giving up Africa; later: regional levies (475), strain if the treasury is below 20 (476).
+  - *Rule through the army's commander* — needs Military 50; Military +6, Unity +4, Legitimacy −8, Economy −5; +3 Military with a field army, +3 after the treaty; later: the commander's ambition (475, if Legitimacy < 25), arrears (476, if Economy < 15).
+- **472 consequences resolve before Decision 4** (expedition debts, eastern resentment, treaty holds/lapses), shown in the order-of-events box.
+- **Recovery for weak states** without automatic rescue (examples in `docs/QA_CHECKLIST.md`).
+- **Reports to the council** now open with the political situation (variant + every matching note) and use the sections: situation, decision, who gains and loses influence, immediate consequences, risks that remain.
+- **Scenario version 4**; v3 saves refused with an explanation. Every path ends at a c. 474 checkpoint.
+- Tests: all 81 D1–D4 combinations against an independent reference model (54 valid; 9 blocked at each of D2, D3, D4).
 
 ### Not implemented
 
-- Decisions 4–5, the three endings and the end screen.
-- Export/import of saves; share card (Phase 4); map (Phase 3); comparison (Phase 4); Creator Mode / Historical Animation Studio (Phase 5) — only the data contracts and event stream exist.
+- Decision 5, the three endings and the end screen.
+- Export/import of saves; share card (Phase 4); map (Phase 3); comparison (Phase 4); Creator Mode / Historical Animation Studio (Phase 5) — only data contracts and the event stream exist.
 - Screen-reader, Safari/Firefox and real-device testing; deployment.
 
 ## Commands
@@ -42,21 +42,22 @@ npm run test:e2e   # Playwright (needs a build and `npx playwright install chrom
 
 ## Known limitations
 
-1. Consequences due in 472 and 476 are shown as "still to come" and cannot resolve until Decisions 4–5 exist (D4 at c. 472 will resolve the 472 ones).
-2. Balance is provisional and unplaytested. Notable: *provinces → field army → join expedition* ends at Economy 1; *tax reform → federates → fortify* ends at Legitimacy 8. These are legal but harsh; D4 must give such states a viable option (the validator already forbids all-gated decisions).
-3. Sources for the new 442 and 461 events are tertiary (Wikipedia) and marked as such; the D3 framing has review points in `docs/HISTORICAL_REVIEW.md`.
-4. Saves are per browser; there is no export yet.
-5. The sandbox cannot download Actions logs; CI results are read from job annotations and the jobs API. Full logs are on GitHub.
-6. Channel URLs and the privacy page's hosting details are still pending.
-7. GitHub notes that `ubuntu-latest` moves to Ubuntu 26 from 19 Oct 2026; watch the next CI runs.
+1. Every path reaches the checkpoint with its two Decision 4 consequences (475 and 476) and up to two earlier ones (476) still pending; they resolve only when Decision 5 exists.
+2. Balance is provisional and unplaytested. Ruling through the commander can leave Legitimacy at 0 or 3 (e.g. *provinces → federates → treaty → commander*); recovery via the bargain is fragile (Economy 10–17 with the 476 strain likely). Decision 5 must give such states a playable option and lead to all three endings.
+3. Clamping can hide part of a cost at 0 (e.g. the bargain's Economy −6 at Economy 0). The record shows requested vs applied; this is intended but should be reviewed in playtesting.
+4. New sources are Britannica plus tertiary Wikipedia; the 471 defeat in Gaul needs a scholarly source; D4 framing has review points.
+5. Saves are per browser; no export yet.
+6. The sandbox cannot download Actions logs; results come from job annotations and the jobs API.
+7. Channel URLs and the privacy page's hosting details are still pending.
+8. GitHub moves `ubuntu-latest` to Ubuntu 26 from 19 Oct 2026; watch the next CI runs.
 
-## Next smallest testable milestone (Phase 2, milestone 4)
+## Next smallest testable milestone (Phase 2, milestone 5)
 
-**Decision 4, imperial legitimacy (c. 472)** — only after this milestone is reviewed:
-1. Author D4 (centralise authority / coalition with regional elites / recognise local autonomy), set against sourced 472–474 events (to be researched and added first).
-2. Place D4 at c. 472 so the 472 consequences (expedition debts, treaty resentment, treaty holds) resolve on arrival, before the decision; test triggered and lapsed cases in Rome content.
-3. At least one D4 option depends on D3's flag (joined expedition / treaty / Africa abandoned); give the harshest D1–D3 end states a viable option.
-4. Tests: full matrix (up to 81 combinations) against the reference model, dominance, determinism, narrative, event stream; scenario version 4 with a change note; Playwright through D4.
+**Decision 5, the final crisis (c. 475–476), and the three endings** — only after this milestone is reviewed:
+1. Research and source 473–476 (Glycerius, Julius Nepos, Orestes, Odoacer; Euric's treaty of 475), recording disputes.
+2. Author D5 (defend the imperial office / negotiate power-sharing / transfer to a decentralised successor structure); resolve the 475 consequences before it and the 476 ones on arrival at the ending, or document a different order.
+3. Write the three endings (Imperial Continuity, Negotiated Transformation, Fragmentation) with ending rules that depend on flags and resources; every ending reachable; every weak state has a path.
+4. Tests: full matrix (up to 243 combinations) against the reference model, ending reachability, determinism; scenario version 5; Playwright to an ending. The end screen itself can be the milestone after.
 
 ## Session log
 
@@ -66,3 +67,4 @@ npm run test:e2e   # Playwright (needs a build and `npx playwright install chrom
 | 2 | 2026-10-15 | GitHub + CI; engine, validator, D1 | CI: 74/74 tests, build |
 | 3 | 2026-10-15 | D2, delayed consequences, saves, decision UI, Playwright in CI | CI: 94/94 Vitest, 20/20 Playwright, typecheck, lint, build |
 | 4 | 2026-10-15 | D3, 468 consequences before D3, narrative reports, event stream, scenario v3, 27-combination matrix; mobile-menu race fix | CI: 115/115 Vitest, 22/22 Playwright, typecheck, lint, build (run 38810346645) |
+| 5 | 2026-10-16 | Research 467–472; D4 with recovery; 472 consequences; situation in reports; scenario v4; 81-combination matrix | CI: 139/139 Vitest, 24/24 Playwright, typecheck, lint, build (run 38946100373) |

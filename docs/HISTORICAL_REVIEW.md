@@ -49,6 +49,28 @@ The D3 context in `alternate.ts` states four facts, each linked to a sourced eve
 4. The narrative reports name broad groups (taxpayers in Italy, coastal towns, merchants, the eastern court, those hoping to recover Africa, federate allies, veterans). They are labelled as invented and cite nothing. A reviewer should check none of them reads as a historical claim about a specific real group's attitude.
 5. The "islands near Italy" variant (when Military ≥ 60) echoes but does not claim the real recovery of Sardinia in 468; it is fiction.
 
+## Decision 4 framing and the 467–472 events (added 16 Oct 2026, session 5)
+
+New events, each checked against its listed sources on 16 Oct 2026:
+
+| Event | Date as shown | Check | Notes and disputes |
+| --- | --- | --- | --- |
+| Constantinople sends Anthemius to rule the West | 467 (year) | ✅ Britannica + Wikipedia | Proclamation given as 12 April (Wikipedia, "Anthemius") or 14 April (Wikipedia, "Ricimer"); shown at year precision with the disagreement in the caveat. Ricimer's marriage to Alypia in both. |
+| The Visigoths destroy an imperial army in southern Gaul | c. 471 (approximate) | ⚠️ Wikipedia ×2, Britannica | The "Anthemius" article names Anthemiolus and three commanders; the "Euric" article does not mention Anthemiolus and gives no date in its text (471 and Arles appear only in a link title). Britannica covers Euric's expansion only in general. Marked **approximate** with caveat. **Needs a scholarly source** (e.g. Wolfram 1988, Mathisen). |
+| Ricimer overthrows Anthemius | 11 July 472 | ⚠️ **Contested details** | Britannica and both Wikipedia articles give 11 July for Anthemius' death. Disputed: when Olybrius was proclaimed (April/May vs July 472), why (Malalas' intercepted-letter story vs Vandal pressure; O'Flynn doubts Malalas), who killed Anthemius (Ricimer or Gundobad) and where (St Peter's or Santa Maria in Trastevere). Marked **contested**, disputes in the caveat. |
+| Ricimer and Olybrius die; Gundobad takes command | 472 (year) | ✅ Britannica + Wikipedia | Ricimer: 18 August (Britannica; Fasti vindobonenses) or 19 August (Wikipedia; Cassiodorus, Paschale campanum). Olybrius: 23 October or 2 November. Shown at year precision; both disputes in the caveat. |
+
+Not used, because the sources consulted present them as suspicion or interpretation: that Ricimer deliberately kept the western fleet from the 468 expedition; that Ricimer poisoned Libius Severus; that Ricimer was "heir of Stilicho" (Heather's framing). Interpretations of Ricimer (puppet-master vs necessary barbarian-born commander: Williams & Friell, O'Flynn, Heather, Bury) are **not** taken as fact anywhere in the app.
+
+**D4 context** (`alternate.ts`) restates only the facts above and links to the four events. The phrase "Euric's Visigoths, still formally Rome's allies, were taking land in Gaul and Hispania" relies on Britannica ("ruled as a federate … until 475", "extending his boundaries in Gaul and on the Iberian Peninsula") and Wikipedia ("Euric").
+
+**D4 options are fiction.** They echo real tendencies of the period — an emperor trying to rule independently (Anthemius), a commander ruling through figurehead emperors (Ricimer), and accommodation with regional and federate powers (Euric's federate status) — but the game does not claim any of them would have worked. Points for a reviewer:
+
+1. "Rule through the army's commander" deliberately resembles Ricimer's position; check it does not present that arrangement as the only historical model or caricature it.
+2. "Strike a bargain with the regional powers" bundles landowners, provincial leaders and federate kings; check that grouping is not misleading.
+3. The report text names broad groups (officials loyal to the court, army commanders, provincial leaders, the Senate and civil officials, federate kings, landowners who lent the court money). All are labelled fiction and cite nothing.
+4. Constantinople's attitude in the reports (backing the emperor after a joint expedition, cool after a separate peace) is invented game logic, not a claim about Leo I.
+
 ## Recommended scholarly references to consult (not yet cited)
 
 These are standard works. They have **not** been read for this project yet and are therefore not cited in the app.
@@ -67,3 +89,5 @@ These are standard works. They have **not** been read for this project yet and a
 - [ ] Reviewer named and date recorded here.
 - [ ] Campaign decision text (Phase 2) reviewed to keep historical framing separate from fiction — D1, D2 and D3 framing notes above.
 - [ ] 474 East–Vandal peace sourced before any decision text refers to it.
+- [ ] The 471 defeat in Gaul confirmed (date, place, Anthemiolus) from a scholarly source.
+- [ ] D4 framing reviewed (points 1–4 above).
