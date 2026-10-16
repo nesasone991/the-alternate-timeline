@@ -8,10 +8,14 @@ import {
   enumeratePaths,
   evaluateChoices,
   getCurrentNode,
+  classifyEnding,
+  loomingThreats,
   replay,
   resolveNarrative,
+  settleEffects,
   totalPerResource,
 } from '../../src/features/simulation/engine';
+import { buildEndingReport } from '../../src/features/simulation/endings';
 import { validateScenario } from '../../src/features/simulation/validateScenario';
 import { deepFreeze } from '../../src/lib/freeze';
 import type { AlternateScenario, ChoiceNarrative, SimulationState } from '../../src/types/simulation';
@@ -164,6 +168,36 @@ const fixture: AlternateScenario = deepFreeze<AlternateScenario>({
       summary: 's',
     },
   ],
+  endings: [
+    { id: 'fx-strong', category: 'imperial-survival', title: 'Strong', summary: 's' },
+    { id: 'fx-weak', category: 'imperial-collapse', title: 'Weak', summary: 'w' },
+  ],
+  endingRules: [
+    { id: 'rule-strong', endingId: 'fx-strong', conditions: [{ resource: 'legitimacy', min: 45 }], maxLooming: 1, explanation: 'Strong enough.' },
+    { id: 'rule-weak', endingId: 'fx-weak', conditions: [], explanation: 'Fallback.' },
+  ],
+  endingNarrative: {
+    settlement: [{ endings: ['fx-strong'], text: 'Strong settlement.' }, { text: 'Weak settlement.' }],
+    imperialAuthority: [{ when: [{ flag: 'chose-boom' }], text: 'Boom authority.' }, { text: 'Authority.' }],
+    army: [{ text: 'Army.' }],
+    economy: [{ text: 'Economy.' }],
+    regionalPowers: [{ text: 'Regions.' }],
+    constantinople: [{ text: 'East.' }],
+  },
+});
+
+/** The fixture with shortfall rules: unpaid military falls on unity; unpaid economy on legitimacy. */
+const withShortfalls: AlternateScenario = deepFreeze<AlternateScenario>({
+  ...fixture,
+  flags: [
+    ...fixture.flags,
+    { id: 'army-exhausted', label: 'The army ran out', laterEffect: 'x' },
+    { id: 'treasury-empty', label: 'The treasury ran out', laterEffect: 'x' },
+  ],
+  shortfallRules: [
+    { resource: 'military', transferTo: 'unity', flag: 'army-exhausted', explanation: 'Towns defended themselves.' },
+    { resource: 'economy', transferTo: 'legitimacy', flag: 'treasury-empty', explanation: 'The court defaulted.' },
+  ],
 });
 
 function mustApply(scenario: AlternateScenario, state: SimulationState, choiceId: string): SimulationState {
@@ -189,7 +223,7 @@ describe('createInitialState', () => {
     expect(state.records).toEqual([]);
     expect(state.pending).toEqual([]);
     expect(state.resolved).toEqual([]);
-    expect(state.schemaVersion).toBe(3);
+    expect(state.schemaVersion).toBe(4);
     expect(state.seed).toBe(0);
   });
 });
@@ -282,9 +316,10 @@ describe('conditional effects', () => {
       {
         id: 'always-after-bust',
         explanation: 'Because of the bust, this hurts more.',
-        effects: [{ resource: 'unity', requested: -3, applied: -3, before: 33, after: 30 }],
+        effects: [{ resource: 'unity', delta: -3 }],
       },
     ]);
+    expect(result.record.effects).toEqual([{ resource: 'unity', requested: -5, applied: -5, before: 35, after: 30 }]);
     expect(result.state.resources.unity).toBe(30);
 
     const afterBoom = mustApply(fixture, createInitialState(fixture), 'boom');
@@ -358,8 +393,14 @@ describe('determinism and immutability', () => {
     expect(JSON.stringify(afterBoom)).toBe(boomSnapshot);
   });
 
-  it('marks an ending when a terminal ending node is reached', () => {
-    expect(replay(fixture, ['boom', 'always']).endingId).toBe('end');
+  it('classifies the ending from the complete state on arrival at an ending node', () => {
+    const strong = replay(fixture, ['boom', 'always']);
+    expect(strong.endingId).toBe('fx-strong');
+    expect(strong.endingRuleId).toBe('rule-strong');
+    const weak = replay(fixture, ['bust', 'always']); // the 410 backlash took legitimacy to 40
+    expect(weak.endingId).toBe('fx-weak');
+    expect(weak.endingRuleId).toBe('rule-weak');
+    expect(replay(fixture, ['boom']).endingId).toBeUndefined();
   });
 
   it('replay throws on an invalid step', () => {
@@ -369,6 +410,96 @@ describe('determinism and immutability', () => {
   it('enumerates every path honouring prerequisites', () => {
     expect(enumeratePaths(fixture)).toHaveLength(4);
     for (const path of enumeratePaths(fixture)) expect(getCurrentNode(fixture, replay(fixture, path)).kind).toBe('terminal');
+  });
+});
+
+describe('settleEffects', () => {
+  const at = (economy: number, military: number, unity: number, legitimacy: number) => ({ economy, military, unity, legitimacy });
+
+  it('settles costs and gains of one decision together: one net change per resource, clamped once', () => {
+    const result = settleEffects(withShortfalls, at(0, 50, 20, 30), [], [
+      { resource: 'economy', delta: -6 },
+      { resource: 'economy', delta: 10 },
+    ]);
+    expect(result.applied).toEqual([{ resource: 'economy', requested: 4, applied: 4, before: 0, after: 4 }]);
+    expect(result.structural).toEqual([]);
+  });
+
+  it('turns an unpaid cost into a structural consequence: half of it, rounded up, falls on another resource', () => {
+    const result = settleEffects(withShortfalls, at(3, 50, 20, 30), [], [{ resource: 'economy', delta: -10 }]);
+    expect(result.applied).toEqual([{ resource: 'economy', requested: -10, applied: -3, before: 3, after: 0 }]);
+    expect(result.structural).toEqual([
+      {
+        resource: 'economy',
+        unpaid: 7,
+        explanation: 'The court defaulted.',
+        transfer: { resource: 'legitimacy', requested: -4, applied: -4, before: 30, after: 26 },
+        flag: 'treasury-empty',
+      },
+    ]);
+    expect(result.newFlags).toEqual(['treasury-empty']);
+    expect(result.resources).toEqual(at(0, 50, 20, 26));
+  });
+
+  it('does not chain: if the target is exhausted too, the transfer is itself capped and recorded', () => {
+    const result = settleEffects(withShortfalls, at(50, 2, 1, 30), ['army-exhausted'], [{ resource: 'military', delta: -10 }]);
+    expect(result.structural[0]!.transfer).toEqual({ resource: 'unity', requested: -4, applied: -1, before: 1, after: 0 });
+    expect(result.newFlags).toEqual([]); // already set
+    expect(result.resources).toEqual(at(50, 0, 0, 30));
+  });
+
+  it('leaves the shortfall unconverted when the scenario has no rule for that resource', () => {
+    const result = settleEffects(fixture, at(50, 2, 20, 30), [], [{ resource: 'military', delta: -10 }]);
+    expect(result.structural).toEqual([]);
+    expect(result.applied[0]!.applied).toBe(-2);
+  });
+
+  it('records structural consequences on the decision, sets the flag and shows them in the projection', () => {
+    const start = createInitialState(withShortfalls); // military 5
+    const boom = evaluateChoices(withShortfalls, start).find((e) => e.choice.id === 'boom')!;
+    expect(boom.projectedStructural.map((item) => [item.resource, item.unpaid, item.transfer.applied])).toEqual([['military', 15, -8]]);
+    const result = applyChoice(withShortfalls, start, 'boom');
+    if (!result.ok) throw new Error(result.message);
+    expect(result.record.structural).toEqual(boom.projectedStructural);
+    expect(result.state.flags).toEqual(['chose-boom', 'army-exhausted']);
+    // Unity 50 − 8 = 42, then the 410 dividend +10 = 52.
+    expect(result.state.resources.unity).toBe(52);
+  });
+});
+
+describe('classifyEnding and loomingThreats', () => {
+  it('lists harmful pending consequences whose condition already holds', () => {
+    const state = replay(fixture, ['boom', 'always']);
+    expect(loomingThreats(fixture, state).map((p) => p.consequenceId)).toEqual(['boom-late']);
+  });
+
+  it('explains every rule it checked, up to the one that matched', () => {
+    const strict: AlternateScenario = {
+      ...fixture,
+      endingRules: [{ ...fixture.endingRules![0]!, maxLooming: 0 }, fixture.endingRules![1]!],
+    };
+    const state = replay(fixture, ['boom', 'always']);
+    const result = classifyEnding(strict, state)!;
+    expect(result.endingId).toBe('fx-weak');
+    expect(result.evaluated.map((e) => [e.rule.id, e.matched])).toEqual([
+      ['rule-strong', false],
+      ['rule-weak', true],
+    ]);
+    expect(result.evaluated[0]!.checks).toEqual([
+      { met: true, description: 'Legitimacy 45 or more (you have 50)' },
+      { met: false, description: 'At most 0 serious threats still looming (there is 1)' },
+    ]);
+  });
+
+  it('builds a structured, fictional ending report', () => {
+    const report = buildEndingReport(fixture, replay(fixture, ['boom', 'always']));
+    expect(report.fiction).toBe(true);
+    expect(report.endingId).toBe('fx-strong');
+    expect(report.settlement).toBe('Strong settlement.');
+    expect(report.imperialAuthority).toBe('Boom authority.');
+    expect(report.looming.map((item) => item.consequenceId)).toEqual(['boom-late']);
+    expect(report.keyDecisions.map((item) => item.choiceId)).toEqual(['boom', 'always']);
+    expect(() => buildEndingReport(fixture, replay(fixture, ['boom']))).toThrow();
   });
 });
 
@@ -427,6 +558,26 @@ describe('resolveNarrative', () => {
 describe('validateScenario', () => {
   it('accepts the fixture', () => {
     expect(validateScenario(fixture)).toEqual([]);
+  });
+
+  it('checks shortfall rules, ending rules and the ending report', () => {
+    const broken: AlternateScenario = {
+      ...withShortfalls,
+      shortfallRules: [{ resource: 'unity', transferTo: 'unity', flag: 'ghost', explanation: '' }],
+      endingRules: [
+        { id: 'r1', endingId: 'nowhere', conditions: [], explanation: 'x' },
+        { id: 'r2', endingId: 'fx-weak', conditions: [{ flag: 'chose-boom' }], explanation: 'x' },
+      ],
+      endingNarrative: { ...fixture.endingNarrative!, army: [{ when: [{ flag: 'chose-boom' }], text: 'x' }] },
+    };
+    const errors = validateScenario(broken).join('\n');
+    expect(errors).toMatch(/must fall on a different resource/);
+    expect(errors).toMatch(/unknown flag "ghost"/);
+    expect(errors).toMatch(/unknown ending "nowhere"/);
+    expect(errors).toMatch(/last ending rule must be unconditional/);
+    expect(errors).toMatch(/Ending fx-strong: no rule leads to it/);
+    expect(errors).toMatch(/Ending report army: the last line must apply to every ending and state/);
+    expect(validateScenario({ ...fixture, endingRules: [] }).join('\n')).toMatch(/an ending node needs ending rules/);
   });
 
   it('rejects situation notes without a default situation', () => {

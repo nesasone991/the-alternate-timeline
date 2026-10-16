@@ -46,6 +46,33 @@ const D4_SITUATION = {
   ],
 } as const satisfies Pick<ChoiceNarrative, 'situation' | 'situationVariants' | 'situationNotes'>;
 
+/** The political situation at Decision 5, shared by all three reports (see D4_SITUATION). */
+const D5_SITUATION = {
+  situation:
+    'The final crisis has arrived. The soldiers want land, the commanders want power, the regional rulers want to govern for themselves, and Constantinople is watching to see who will hold Italy, and in whose name.',
+  situationVariants: [
+    {
+      when: { resource: 'legitimacy', below: 15 },
+      text: 'The court’s standing is all but gone. Few still obey the emperor unless they are paid or forced to, and the soldiers, the commanders and the regional rulers are deciding Italy’s future among themselves.',
+    },
+    {
+      when: { resource: 'economy', below: 10 },
+      text: 'The treasury is empty. The court cannot pay the soldiers who are demanding land, and whatever it decides must cost almost nothing.',
+    },
+  ],
+  situationNotes: [
+    { when: { flag: 'central-authority' }, text: 'The court restored the emperor’s authority, and loyal officials still answer to it.' },
+    { when: { flag: 'regional-bargain' }, text: 'The bargain with the regional powers still binds them to the court.' },
+    { when: { flag: 'commander-rules' }, text: 'The army’s commander rules in the emperor’s name; the troops are his, not the emperor’s.' },
+    { when: { flag: 'joined-expedition' }, text: 'Constantinople still remembers that the West sailed with its expedition.' },
+    { when: { flag: 'vandal-treaty' }, text: 'Constantinople has not forgotten the separate peace with Gaiseric.' },
+    { when: { flag: 'federates-settled' }, text: 'Federate leaders hold land inside the empire and command their own soldiers.' },
+    { when: { flag: 'treasury-defaulted' }, text: 'The treasury has already failed to pay its obligations once.' },
+    { when: { flag: 'authority-collapsed' }, text: 'The court’s authority has already collapsed once; many no longer expect it to command.' },
+    { when: { resource: 'military', min: 60 }, text: 'The army is strong, and its commanders know it.' },
+  ],
+} as const satisfies Pick<ChoiceNarrative, 'situation' | 'situationVariants' | 'situationNotes'>;
+
 /**
  * FICTIONAL alternate-history campaign for the Fall of Rome.
  *
@@ -93,7 +120,7 @@ const D4_SITUATION = {
  */
 export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScenario>({
   id: 'rome-alternate',
-  version: 4,
+  version: 5,
   campaignId: 'fall-of-rome',
   title: 'The Fall of Rome: Can the West Survive?',
   disclaimer:
@@ -119,7 +146,217 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
       summary:
         'Decision 4, imperial legitimacy, and the consequences due in 472. Decision 3 now leads on to Decision 4, so every path continues further than before.',
     },
+    {
+      version: 5,
+      summary:
+        'Decision 5, the final crisis, and the three endings. A decision’s costs and gains are now settled together, and a cost the empire cannot pay in full has a structural consequence instead of disappearing at zero.',
+    },
   ],
+  shortfallRules: [
+    {
+      resource: 'economy',
+      transferTo: 'unity',
+      flag: 'treasury-defaulted',
+      explanation: 'The treasury could not pay all of it, so the court made up the difference by seizing goods and labour from the provinces.',
+    },
+    {
+      resource: 'military',
+      transferTo: 'unity',
+      flag: 'army-exhausted',
+      explanation: 'The army could not supply everything asked of it, so towns and landowners had to raise and pay for their own defence.',
+    },
+    {
+      resource: 'legitimacy',
+      transferTo: 'unity',
+      flag: 'authority-collapsed',
+      explanation: 'The court had no standing left to spend, so provinces and officials stopped obeying it.',
+    },
+    {
+      resource: 'unity',
+      transferTo: 'legitimacy',
+      flag: 'provinces-defiant',
+      explanation: 'Provincial loyalty was already exhausted, so the provinces openly defied the court and its standing fell.',
+    },
+  ],
+  endings: [
+    {
+      id: 'imperial-survival',
+      category: 'imperial-survival',
+      title: 'Imperial Survival',
+      summary: 'The Western imperial office comes through the crisis of 476 with real authority over a smaller empire.',
+    },
+    {
+      id: 'fragmented-survival',
+      category: 'fragmented-survival',
+      title: 'Fragmented Survival',
+      summary:
+        'A Roman political order survives in the West, but divided: power is shared with, or handed to, regional rulers, commanders and settled allies.',
+    },
+    {
+      id: 'imperial-collapse',
+      category: 'imperial-collapse',
+      title: 'Imperial Collapse',
+      summary: 'Neither a Western emperor nor any successor order holds the West together. Power lies with whoever commands soldiers in each region.',
+    },
+  ],
+  endingRules: [
+    {
+      id: 'is-office-holds',
+      endingId: 'imperial-survival',
+      conditions: [
+        { notFlag: 'office-transferred' },
+        { resource: 'legitimacy', min: 35 },
+        { resource: 'military', min: 40 },
+        { resource: 'unity', min: 25 },
+        { resource: 'economy', min: 5 },
+        { notFlag: 'authority-collapsed' },
+        { notFlag: 'treasury-defaulted' },
+      ],
+      maxLooming: 0,
+      explanation:
+        'The imperial office was kept, and the emperor had the standing, the army, the unity and the money to hold it, with no unpaid debts or collapse of authority behind him and no serious threat still looming.',
+    },
+    {
+      id: 'fs-order-persists',
+      endingId: 'fragmented-survival',
+      conditions: [
+        { resource: 'unity', min: 25 },
+        { resource: 'legitimacy', min: 15 },
+      ],
+      maxLooming: 1,
+      explanation:
+        'Imperial authority did not hold everywhere, but enough unity and standing remained for a Roman political order to survive in parts of the West.',
+    },
+    {
+      id: 'fs-successors-hold',
+      endingId: 'fragmented-survival',
+      conditions: [{ flag: 'office-transferred' }, { resource: 'unity', min: 25 }],
+      maxLooming: 1,
+      explanation: 'The Western imperial office lapsed, but the successor rulers held together.',
+    },
+    {
+      id: 'ic-fallback',
+      endingId: 'imperial-collapse',
+      conditions: [],
+      explanation: 'Neither the imperial office nor a successor order had enough unity, standing or strength to hold the West together.',
+    },
+  ],
+  endingNarrative: {
+    settlement: [
+      {
+        endings: ['imperial-survival'],
+        when: [{ flag: 'office-defended' }],
+        text: 'The emperor defended his throne and won. A Western emperor still rules from Italy, with fewer provinces than his predecessors but real authority over those that remain.',
+      },
+      {
+        endings: ['imperial-survival'],
+        when: [{ flag: 'power-shared' }],
+        text: 'The emperor kept his throne by sharing power with the army. A Western emperor still rules from Italy, with soldiers settled on Italian land as partners in the empire.',
+      },
+      { endings: ['imperial-survival'], text: 'A Western emperor still rules from Italy, with real authority over a smaller empire.' },
+      {
+        endings: ['fragmented-survival'],
+        when: [{ flag: 'office-transferred' }, { flag: 'regional-bargain' }],
+        text: 'The Western imperial office has lapsed, but a federation of successor rulers, bound by the bargain struck in the 470s, keeps a Roman order alive in the West.',
+      },
+      {
+        endings: ['fragmented-survival'],
+        when: [{ flag: 'office-transferred' }],
+        text: 'The Western imperial office has lapsed. Successor rulers govern Italy and the provinces in the name of the emperor in Constantinople, and Roman law and administration carry on under them.',
+      },
+      {
+        endings: ['fragmented-survival'],
+        text: 'The empire survives in pieces. An emperor still reigns, but much of the West is governed by regional powers, commanders and settled soldiers who obey him only when it suits them.',
+      },
+      {
+        endings: ['imperial-collapse'],
+        when: [{ flag: 'office-defended' }],
+        text: 'The war for the throne was lost, or never decided. Italy is fought over by rival commanders, and no one rules the West.',
+      },
+      {
+        endings: ['imperial-collapse'],
+        when: [{ flag: 'office-transferred' }],
+        text: 'The Western imperial office lapsed, and the successors did not hold together. The West has broken into separate kingdoms with no common authority.',
+      },
+      {
+        text: 'Imperial authority in the West has collapsed. Power lies with whoever commands soldiers in each region, and no one speaks for the empire as a whole.',
+      },
+    ],
+    imperialAuthority: [
+      {
+        when: [{ flag: 'authority-collapsed' }],
+        text: 'The court’s authority collapsed during the crisis; even where an emperor’s name is still used, few obey it.',
+      },
+      {
+        endings: ['imperial-survival'],
+        when: [{ resource: 'legitimacy', min: 50 }],
+        text: 'The emperor’s authority is secure: his orders are obeyed in Italy and respected beyond it.',
+      },
+      { endings: ['imperial-survival'], text: 'The emperor’s authority holds, though it must still be defended.' },
+      {
+        when: [{ flag: 'office-transferred' }],
+        text: 'There is no Western emperor. Authority belongs to the successor rulers — and, in name, to the emperor in Constantinople.',
+      },
+      { when: [{ flag: 'commander-rules' }], text: 'The emperor reigns, but the commander of the army rules.' },
+      { when: [{ resource: 'legitimacy', below: 20 }], text: 'Imperial authority is little more than a name.' },
+      { text: 'The emperor is obeyed where his officials and soldiers can reach, and ignored elsewhere.' },
+    ],
+    army: [
+      { when: [{ flag: 'army-exhausted' }], text: 'The army could not supply what was asked of it and is close to breaking.' },
+      {
+        when: [{ resource: 'military', min: 65 }],
+        text: 'The army is strong — strong enough that whoever commands it holds the real power.',
+      },
+      { when: [{ resource: 'military', min: 45 }], text: 'The army is intact and able to defend Italy.' },
+      { when: [{ resource: 'military', min: 25 }], text: 'The army is weakened: it can hold some places, but not all.' },
+      { text: 'The army is broken; towns and landowners must defend themselves.' },
+    ],
+    economy: [
+      {
+        when: [{ flag: 'treasury-defaulted' }, { resource: 'economy', min: 20 }],
+        text: 'The treasury failed to pay its obligations during the crisis, but it has recovered enough to pay its way.',
+      },
+      {
+        when: [{ flag: 'treasury-defaulted' }],
+        text: 'The treasury failed to pay its obligations; the court made up the difference by seizing goods and labour from the provinces, and they will not soon forget it.',
+      },
+      { when: [{ resource: 'economy', min: 40 }], text: 'The treasury is solvent and trade is recovering.' },
+      { when: [{ resource: 'economy', min: 20 }], text: 'The treasury is strained, but it pays its way.' },
+      { when: [{ resource: 'economy', min: 8 }], text: 'The treasury is nearly empty; every new expense must be begged or borrowed.' },
+      { text: 'The treasury is empty.' },
+    ],
+    regionalPowers: [
+      {
+        when: [{ flag: 'office-transferred' }, { flag: 'regional-bargain' }],
+        text: 'The regional powers govern their own lands as partners in a federation of successors.',
+      },
+      { when: [{ flag: 'office-transferred' }], text: 'The regional powers govern their own lands and owe the West nothing.' },
+      { when: [{ flag: 'provinces-defiant' }], text: 'The provinces openly defy the court.' },
+      {
+        when: [{ flag: 'regional-bargain' }, { resource: 'unity', min: 30 }],
+        text: 'The regional powers keep to their bargain with the court.',
+      },
+      { when: [{ flag: 'regional-bargain' }], text: 'The bargain with the regional powers is fraying.' },
+      { when: [{ flag: 'power-shared' }], text: 'The soldiers settled on Italian land are now a regional power of their own.' },
+      { when: [{ resource: 'unity', min: 40 }], text: 'The provinces still loyal to the court stand behind it.' },
+      { when: [{ resource: 'unity', min: 20 }], text: 'The regional powers obey the court when it suits them.' },
+      { text: 'The regional powers go their own way.' },
+    ],
+    constantinople: [
+      {
+        when: [{ flag: 'office-transferred' }, { flag: 'joined-expedition' }],
+        text: 'Constantinople, remembering the West’s part in the expedition against Carthage, treats the successor rulers as its partners.',
+      },
+      {
+        when: [{ flag: 'office-transferred' }],
+        text: 'The emperor in Constantinople is now the only Roman emperor; the successor rulers acknowledge him, and he decides whether to recognise them.',
+      },
+      { when: [{ flag: 'vandal-treaty' }], text: 'Constantinople remains cool towards the West after its separate peace with Gaiseric.' },
+      { when: [{ flag: 'joined-expedition' }], text: 'Constantinople regards the West as a partner, remembering the expedition against Carthage.' },
+      { when: [{ flag: 'central-authority' }], text: 'Constantinople deals with the Western emperor as a fellow ruler.' },
+      { text: 'Constantinople watches the West from a distance and recognises whoever holds power in Italy.' },
+    ],
+  },
   flags: [
     {
       id: 'tax-reform',
@@ -180,6 +417,41 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
       id: 'commander-rules',
       label: 'You let the army’s commander rule in the emperor’s name',
       laterEffect: 'Order backed by the army, and a commander with the power to choose emperors.',
+    },
+    {
+      id: 'office-defended',
+      label: 'You defended the imperial office by force',
+      laterEffect: 'An emperor who rules through his own army, for as long as it stays loyal and paid.',
+    },
+    {
+      id: 'power-shared',
+      label: 'You gave the soldiers land and their leaders a share of power',
+      laterEffect: 'An army with a stake in Italy, and landowners who paid for it.',
+    },
+    {
+      id: 'office-transferred',
+      label: 'You let the Western imperial office lapse in favour of successor rulers',
+      laterEffect: 'No Western emperor; successor rulers who acknowledge Constantinople.',
+    },
+    {
+      id: 'treasury-defaulted',
+      label: 'The treasury failed to pay its obligations',
+      laterEffect: 'The court seized goods and labour from the provinces to make up what it could not pay.',
+    },
+    {
+      id: 'army-exhausted',
+      label: 'The army could not supply the troops asked of it',
+      laterEffect: 'Towns and landowners had to raise their own defence.',
+    },
+    {
+      id: 'authority-collapsed',
+      label: 'The court’s authority collapsed',
+      laterEffect: 'Provinces and officials stopped obeying a court with no standing left.',
+    },
+    {
+      id: 'provinces-defiant',
+      label: 'The provinces openly defied the court',
+      laterEffect: 'Provincial loyalty ran out, and the court’s standing fell with it.',
     },
   ],
   nodes: [
@@ -772,7 +1044,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
               },
             ],
           },
-          nextEventId: 'checkpoint-d5',
+          nextEventId: 'd5-final-crisis',
         },
         {
           id: 'bargain-with-regions',
@@ -876,7 +1148,7 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
               },
             ],
           },
-          nextEventId: 'checkpoint-d5',
+          nextEventId: 'd5-final-crisis',
         },
         {
           id: 'rule-through-commander',
@@ -965,19 +1237,300 @@ export const romeAlternateScenario: AlternateScenario = deepFreeze<AlternateScen
               },
             ],
           },
-          nextEventId: 'checkpoint-d5',
+          nextEventId: 'd5-final-crisis',
+        },
+      ],
+    },
+    {
+      kind: 'decision',
+      id: 'd5-final-crisis',
+      year: 475,
+      yearApproximate: true,
+      title: 'The final crisis',
+      context:
+        'In 474 Constantinople sent Julius Nepos to Italy; he removed Glycerius, an emperor raised without eastern approval, and was recognised by the eastern emperor Zeno. In 475 Nepos made peace with Euric by giving up the Auvergne. That August, Orestes, the general Nepos had put over the army, turned on him: Nepos fled to Dalmatia and Orestes made his young son Romulus emperor. Within a year the soldiers in Italy, refused the land they demanded, followed Odoacer instead. In your timeline the crisis has reached the same point: who will hold Italy, and in whose name?',
+      historicalContextIds: ['nepos-474', 'auvergne-475', 'orestes-romulus-475', 'odoacer-deposes-romulus-476'],
+      prompt: 'How will the council meet the final crisis?',
+      choices: [
+        {
+          id: 'defend-imperial-office',
+          label: 'Defend the imperial office by force',
+          rationale:
+            'Raise every soldier the court can still command and fight anyone who challenges the emperor. If the loyal troops win, the emperor rules with an authority no rival can match; if they lose, or the war drags on, the treasury and the army pay twice.',
+          outcome:
+            'The court called its loyal troops to arms and made clear that the throne would be defended, not bargained away. Its standing rose; the treasury and the army paid for the war.',
+          warning: 'Needs an army that answers to the emperor — not one that answers to its commander.',
+          prerequisites: [{ resource: 'military', min: 40 }, { notFlag: 'commander-rules' }],
+          effects: [
+            { resource: 'military', delta: -8 },
+            { resource: 'economy', delta: -6 },
+            { resource: 'legitimacy', delta: 8 },
+            { resource: 'unity', delta: -3 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'loyal-officials-raise-troops',
+              when: { flag: 'central-authority' },
+              explanation: 'Because you restored the emperor’s authority, loyal officials raise and pay troops in his name.',
+              effects: [{ resource: 'military', delta: 4 }],
+            },
+            {
+              id: 'regional-levies-march',
+              when: { flag: 'regional-bargain' },
+              explanation: 'Because of the bargain with the regional powers, their levies march for the emperor.',
+              effects: [{ resource: 'military', delta: 3 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'loyalist-victory',
+              dueYear: 476,
+              hint: 'If the loyal army is strong enough, a decisive victory could settle who rules.',
+              condition: { resource: 'military', min: 45 },
+              explanation: 'The loyal army won decisively, and few still questioned who ruled Italy.',
+              lapsedExplanation: 'The loyal army was too weak to win outright; the fighting ended without a clear victory.',
+              effects: [
+                { resource: 'legitimacy', delta: 6 },
+                { resource: 'unity', delta: 3 },
+              ],
+              mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'gain', label: 'Loyalist victory' }],
+            },
+            {
+              id: 'civil-war-damage',
+              dueYear: 476,
+              hint: 'War in Italy will damage farms, towns and trade, whoever wins.',
+              explanation: 'The fighting damaged farms, towns and trade in Italy.',
+              effects: [{ resource: 'economy', delta: -3 }],
+            },
+            {
+              id: 'usurper-threat',
+              dueYear: 480,
+              hint: 'An emperor who held his throne by force may face the next ambitious general, unless his standing is secure.',
+              condition: { resource: 'legitimacy', below: 35 },
+              explanation: 'Another ambitious general challenged the emperor.',
+              lapsedExplanation: 'The emperor’s standing was secure enough to discourage new challengers.',
+              effects: [{ resource: 'legitimacy', delta: -8 }],
+            },
+          ],
+          flagsSet: ['office-defended'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'uncertain', label: 'Loyal troops called to arms' }],
+          narrative: {
+            ...D5_SITUATION,
+            ordered: 'You ordered every loyal soldier to arms and declared that the throne would be defended, not bargained away.',
+            effect:
+              'The emperor has staked everything on his own army. His standing rose with the decision, but war in Italy costs money and men the empire can barely spare, and the outcome depends on whether the loyal troops are strong enough to win.',
+            effectVariants: [
+              {
+                when: { flag: 'central-authority' },
+                text: 'Because the court had already restored the emperor’s authority, loyal officials raised and paid troops in his name. The emperor has staked everything on an army that is his own; war in Italy will cost money and men, and the outcome depends on whether that army is strong enough to win.',
+              },
+              {
+                when: { flag: 'regional-bargain' },
+                text: 'The regional powers kept their side of the bargain and sent their levies to fight for the emperor. He has staked everything on that army; war in Italy will cost money and men, and the outcome depends on whether it is strong enough to win.',
+              },
+            ],
+            stakeholders: [
+              { id: 'loyal-soldiers', group: 'Soldiers loyal to the emperor', impact: 'gains', text: 'They gain pay, honour and the emperor’s gratitude.' },
+              { id: 'emperor', group: 'The emperor', impact: 'gains', text: 'He remains ruler of Italy in fact as well as in name — if his army wins.' },
+              { id: 'italians', group: 'Farms and towns of Italy', impact: 'loses', text: 'Those in the path of the fighting suffer.' },
+              { id: 'rivals', group: 'Commanders hoping to rule through a puppet', impact: 'loses', text: 'They lose their chance, unless the emperor loses the war.' },
+            ],
+            uncertainty:
+              'Victory is not certain, and an emperor who holds his throne by force must keep holding it. If his standing falls, the next ambitious general may try his luck.',
+            uncertaintyVariants: [
+              {
+                when: { resource: 'military', below: 50 },
+                text: 'The loyal army is thin. Unless it is stronger than it looks, the war may end without a clear victory — the worst outcome for an emperor who staked everything on force.',
+              },
+            ],
+          },
+          nextEventId: 'settlement-476',
+        },
+        {
+          id: 'share-power-with-army',
+          label: 'Give the soldiers land and their leaders a share of power',
+          rationale:
+            'Meet the soldiers’ demand: settle them on land in Italy, taken from the great estates, and give their leaders a place in government. The army is satisfied and becomes a partner in the empire; the landowners lose land, and the court shares power with men it cannot easily dismiss.',
+          outcome:
+            'The court granted the soldiers land in Italy and gave their leaders a share of power. The army was content; the landowners who gave up land were not, and the court’s authority now rested on a partnership.',
+          warning: 'Settling soldiers on Italian land angers the landowners who must give it up.',
+          effects: [
+            { resource: 'military', delta: 8 },
+            { resource: 'unity', delta: -6 },
+            { resource: 'economy', delta: -4 },
+            { resource: 'legitimacy', delta: -4 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'federate-precedent',
+              when: { flag: 'federates-settled' },
+              explanation: 'Because allies were already settled as federates, the grants follow a familiar pattern and cause less outrage.',
+              effects: [{ resource: 'unity', delta: 3 }],
+            },
+            {
+              id: 'commander-guarantees',
+              when: { flag: 'commander-rules' },
+              explanation:
+                'Because the commander already rules in the emperor’s name, he guarantees the settlement himself, and the court is seen to keep the peace.',
+              effects: [{ resource: 'legitimacy', delta: 3 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'soldiers-settled',
+              dueYear: 476,
+              hint: 'If Italy stays united enough to accept the grants, the settled soldiers may defend their new lands loyally.',
+              condition: { resource: 'unity', min: 25 },
+              explanation: 'Settled on their new lands, the soldiers defended Italy as their own.',
+              lapsedExplanation: 'Italy was too divided for the settlements to take root, and many soldiers stayed restless.',
+              effects: [
+                { resource: 'military', delta: 4 },
+                { resource: 'legitimacy', delta: 2 },
+              ],
+            },
+            {
+              id: 'landowners-resentment',
+              dueYear: 480,
+              hint: 'Landowners who lost land may work against the settlement if the empire stays divided.',
+              condition: { resource: 'unity', below: 30 },
+              explanation: 'Landowners who had lost land turned against the settlement.',
+              lapsedExplanation: 'Enough unity held that the landowners accepted the settlement.',
+              effects: [{ resource: 'unity', delta: -6 }],
+            },
+          ],
+          flagsSet: ['power-shared'],
+          mapCues: [{ kind: 'emphasis', regions: ['italy'], tone: 'neutral', label: 'Soldiers settled on Italian land' }],
+          narrative: {
+            ...D5_SITUATION,
+            ordered: 'You granted the soldiers land in Italy, taken from the great estates, and gave their leaders seats in the council.',
+            effect:
+              'The army now has a stake in Italy and good reason to defend it. The court has bought peace with its own soldiers at the landowners’ expense, and it governs as one partner among several.',
+            effectVariants: [
+              {
+                when: { resource: 'legitimacy', below: 15 },
+                text: 'With its standing already exhausted, the court could only agree to what the soldiers demanded. The army is content and Italy is quiet; the court’s authority is now little more than a name.',
+              },
+              {
+                when: { flag: 'commander-rules' },
+                text: 'The commander, already ruling in the emperor’s name, guaranteed the settlement himself. The army is satisfied and Italy is quiet, but the emperor is now one partner among several, and not the strongest.',
+              },
+            ],
+            stakeholders: [
+              { id: 'soldiers', group: 'The soldiers', impact: 'gains', text: 'They gain land of their own and a voice in government.' },
+              { id: 'army-leaders', group: 'The soldiers’ leaders', impact: 'gains', text: 'They gain seats in the council and a share of power.' },
+              { id: 'landowners', group: 'Great landowners', impact: 'loses', text: 'They give up part of their estates.' },
+              { id: 'court', group: 'The imperial court', impact: 'mixed', text: 'It keeps its throne but shares its power.' },
+            ],
+            uncertainty:
+              'A settlement imposed on unwilling landowners may not last. If Italy stays divided, those who lost land may work against it.',
+          },
+          nextEventId: 'settlement-476',
+        },
+        {
+          id: 'transfer-to-successors',
+          label: 'Hand government to successor rulers under Constantinople',
+          rationale:
+            'Let the Western imperial office lapse. Italy is governed by a ruler who acknowledges the emperor in Constantinople, and the regional powers govern their own lands as partners. The cost of an imperial court disappears and the fighting over the throne ends — and so does the Western emperor.',
+          outcome:
+            'The council let the Western imperial office lapse. Italy and the regions were governed by successor rulers who acknowledged the emperor in Constantinople. The fighting over the throne ended, and so did the Western emperor.',
+          warning: 'Ends the Western imperial office; what holds the successors together is up to them.',
+          effects: [
+            { resource: 'legitimacy', delta: -10 },
+            { resource: 'economy', delta: 6 },
+            { resource: 'unity', delta: 4 },
+            { resource: 'military', delta: -4 },
+          ],
+          conditionalEffects: [
+            {
+              id: 'successors-federation',
+              when: { flag: 'regional-bargain' },
+              explanation: 'Because of the bargain with the regional powers, the successors already have a framework for working together.',
+              effects: [{ resource: 'unity', delta: 4 }],
+            },
+            {
+              id: 'eastern-goodwill',
+              when: { flag: 'joined-expedition' },
+              explanation: 'Because the West sailed with the eastern expedition, Constantinople welcomes the successors as partners.',
+              effects: [{ resource: 'legitimacy', delta: 4 }],
+            },
+            {
+              id: 'commander-becomes-ruler',
+              when: { flag: 'commander-rules' },
+              explanation: 'Because the commander already ruled in the emperor’s name, he takes power without a fight, and the army stays together.',
+              effects: [{ resource: 'military', delta: 4 }],
+            },
+          ],
+          consequences: [
+            {
+              id: 'eastern-recognition',
+              dueYear: 476,
+              hint: 'Constantinople may recognise the new rulers — if they have enough standing to be worth recognising.',
+              condition: { resource: 'legitimacy', min: 20 },
+              explanation: 'Constantinople recognised the new ruler of Italy, who governed in the eastern emperor’s name.',
+              lapsedExplanation: 'Constantinople withheld its recognition, and the new rulers governed without it.',
+              effects: [{ resource: 'legitimacy', delta: 5 }],
+              mapCues: [{ kind: 'movement', regions: ['constantinople', 'italy'], tone: 'gain', label: 'Recognition from Constantinople' }],
+            },
+            {
+              id: 'successors-drift',
+              dueYear: 480,
+              hint: 'Without an agreed framework, the successor states may drift apart.',
+              condition: { notFlag: 'regional-bargain' },
+              explanation: 'Without an agreed framework, the successor states went their own ways.',
+              lapsedExplanation: 'The bargain with the regional powers gave the successors a framework for staying together.',
+              effects: [{ resource: 'unity', delta: -8 }],
+              mapCues: [{ kind: 'pressure', regions: ['gaul', 'hispania', 'italy'], tone: 'loss', label: 'Successor states drift apart' }],
+            },
+          ],
+          flagsSet: ['office-transferred'],
+          mapCues: [
+            { kind: 'emphasis', regions: ['italy', 'gaul', 'hispania'], tone: 'neutral', label: 'Successor rulers' },
+            { kind: 'movement', regions: ['italy', 'constantinople'], tone: 'neutral', label: 'Allegiance to Constantinople' },
+          ],
+          narrative: {
+            ...D5_SITUATION,
+            ordered:
+              'You let the Western imperial office lapse and handed the government of Italy and the provinces to successor rulers who acknowledge the emperor in Constantinople.',
+            effect:
+              'The struggle over the Western throne is over, because there is no longer a Western throne. Without a court to maintain, the treasury breathes again and the provinces govern themselves; Roman law and administration continue under new rulers, but the West no longer has an emperor of its own.',
+            effectVariants: [
+              {
+                when: { flag: 'commander-rules' },
+                text: 'The commander who already ruled in the emperor’s name now rules in his own, as Constantinople’s representative in Italy. The army stays together, and the struggle over the throne is over — because there is no longer a Western throne.',
+              },
+              {
+                when: { flag: 'regional-bargain' },
+                text: 'The bargain struck with the regional powers becomes the framework for a federation of successors. Without a court to maintain, the treasury breathes again; Roman law and administration continue under new rulers, but the West no longer has an emperor of its own.',
+              },
+            ],
+            stakeholders: [
+              { id: 'regional-rulers', group: 'Regional rulers', impact: 'gains', text: 'They gain the right to govern their own lands.' },
+              { id: 'constantinople', group: 'The emperor in Constantinople', impact: 'gains', text: 'He becomes the only Roman emperor.' },
+              { id: 'western-court', group: 'The Western court and its officials', impact: 'loses', text: 'They lose their place and their purpose.' },
+              { id: 'emperor', group: 'The Western emperor', impact: 'loses', text: 'He gives up his throne.' },
+            ],
+            uncertainty:
+              'Successor rulers who share a history may not share a future. Without an agreed framework they may drift apart; with one they may hold together — but no one can yet say whether as a Roman order or as separate kingdoms.',
+            uncertaintyVariants: [
+              {
+                when: { flag: 'regional-bargain' },
+                text: 'The bargain gives the successors a framework for working together, but it has never been tested without an emperor at its head.',
+              },
+            ],
+          },
+          nextEventId: 'settlement-476',
         },
       ],
     },
     {
       kind: 'terminal',
-      id: 'checkpoint-d5',
-      year: 474,
+      id: 'settlement-476',
+      year: 476,
       yearApproximate: true,
-      status: 'in-development',
-      title: 'Next: the final crisis, c. 475–476',
+      status: 'ending',
+      title: 'The settlement of 476',
       summary:
-        'Decision 5 has not been written yet. Your choices, their effects and the consequences still to come are recorded; this branch continues in the next development milestone.',
+        'The campaign ends here. Every consequence due by 476 has taken effect, and the outcome has been classified from the state of the whole empire: its resources, every earlier decision, any costs it could not pay, and the threats still looming.',
     },
   ],
 });

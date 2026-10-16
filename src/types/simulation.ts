@@ -201,13 +201,85 @@ export type AlternateScenario = {
    * cannot be loaded. The last entry's version must equal `version`.
    */
   readonly changes: readonly { readonly version: number; readonly summary: string }[];
+  /**
+   * What happens when a cost cannot be paid in full because a resource would go
+   * below 0 (see `StructuralConsequence`). At most one rule per resource.
+   */
+  readonly shortfallRules?: readonly ShortfallRule[];
+  /** The campaign's endings. Required when any terminal node has status `ending`. */
+  readonly endings?: readonly EndingDefinition[];
+  /**
+   * Ending classification, checked in order on arrival at an `ending` node; the
+   * first rule whose conditions all hold wins. The last rule must be unconditional.
+   */
+  readonly endingRules?: readonly EndingRule[];
+  /** Authored text for the structured ending report (first matching line per section). */
+  readonly endingNarrative?: EndingNarrativeSpec;
 };
 
-export type Ending = {
+/**
+ * Structural consequence of an unpayable cost. When the net change to a
+ * resource would take it below 0, the unpaid part does not simply vanish: half
+ * of it (rounded up) falls on `transferTo`, and `flag` is set. Deterministic,
+ * recorded on the decision or consequence that caused it, and shown to the player.
+ */
+export type ShortfallRule = {
+  readonly resource: ResourceKey;
+  readonly transferTo: ResourceKey;
+  readonly flag: string;
+  /** How the unpaid part was made up, in the world. */
+  readonly explanation: string;
+};
+
+export type StructuralConsequence = {
+  readonly resource: ResourceKey;
+  /** How much of the cost could not be paid. */
+  readonly unpaid: number;
+  readonly explanation: string;
+  /** The change that made up for it (half the unpaid part, rounded up, may itself be capped at 0). */
+  readonly transfer: AppliedEffect;
+  readonly flag: string;
+};
+
+export type EndingCategory = 'imperial-survival' | 'fragmented-survival' | 'imperial-collapse';
+
+export type EndingDefinition = {
   readonly id: string;
+  readonly category: EndingCategory;
   readonly title: string;
-  readonly year: number;
   readonly summary: string;
+};
+
+export type EndingRule = {
+  readonly id: string;
+  readonly endingId: string;
+  /** All must hold. */
+  readonly conditions: readonly Requirement[];
+  /**
+   * Most "looming threats" allowed: consequences still pending after the ending
+   * year that would do harm if nothing changed (their condition already holds).
+   */
+  readonly maxLooming?: number;
+  /** Why this ending follows when the rule matches. */
+  readonly explanation: string;
+};
+
+/** One candidate line for an ending-report section: the first match wins. */
+export type EndingLine = {
+  /** Only for these endings (any ending when absent). */
+  readonly endings?: readonly string[];
+  /** All must hold (always when absent). */
+  readonly when?: readonly Requirement[];
+  readonly text: string;
+};
+
+export type EndingNarrativeSpec = {
+  readonly settlement: readonly EndingLine[];
+  readonly imperialAuthority: readonly EndingLine[];
+  readonly army: readonly EndingLine[];
+  readonly economy: readonly EndingLine[];
+  readonly regionalPowers: readonly EndingLine[];
+  readonly constantinople: readonly EndingLine[];
 };
 
 /** Requested and actually applied change for one resource (clamping can make them differ). */
@@ -219,10 +291,15 @@ export type AppliedEffect = {
   readonly after: number;
 };
 
+/**
+ * A conditional effect that applied. Its authored effects are listed as they
+ * were requested: a decision's base and conditional effects are settled
+ * together, so only the total in `ChoiceRecord.effects` is clamped.
+ */
 export type AppliedConditional = {
   readonly id: string;
   readonly explanation: string;
-  readonly effects: readonly AppliedEffect[];
+  readonly effects: readonly Effect[];
 };
 
 /** A committed decision: the traceable record behind every later consequence. */
@@ -230,8 +307,13 @@ export type ChoiceRecord = {
   readonly decisionId: string;
   readonly choiceId: string;
   readonly year: number;
-  /** Total immediate change per resource (base effects plus conditional effects). */
+  /**
+   * Total immediate change per resource. Base and conditional effects are
+   * settled together: one net change per resource, clamped once.
+   */
   readonly effects: readonly AppliedEffect[];
+  /** Costs that could not be paid in full, and what made up for them. */
+  readonly structural: readonly StructuralConsequence[];
   /** The conditional effects that applied, each with its reason. */
   readonly conditional: readonly AppliedConditional[];
   /** Ids of consequences this choice scheduled for later. */
@@ -257,9 +339,10 @@ export type ResolvedConsequence = PendingConsequence & {
   readonly triggered: boolean;
   readonly explanation: string;
   readonly effects: readonly AppliedEffect[];
+  readonly structural: readonly StructuralConsequence[];
 };
 
-export const SIMULATION_SCHEMA_VERSION = 3;
+export const SIMULATION_SCHEMA_VERSION = 4;
 
 export type SimulationState = {
   readonly schemaVersion: number;
@@ -281,7 +364,10 @@ export type SimulationState = {
    * explicit, logged seed. The current campaign uses no randomness at all.
    */
   readonly seed: number;
+  /** Set on arrival at an `ending` node, by the scenario's ending rules. */
   readonly endingId?: string;
+  /** The ending rule that matched. */
+  readonly endingRuleId?: string;
 };
 
 /** The three ways a player looks at a campaign. */

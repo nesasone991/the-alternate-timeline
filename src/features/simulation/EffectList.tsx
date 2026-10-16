@@ -1,4 +1,4 @@
-import { RESOURCE_LABELS, type AppliedEffect, type Effect } from '../../types/simulation';
+import { RESOURCE_LABELS, type AppliedEffect, type Effect, type StructuralConsequence } from '../../types/simulation';
 
 function signed(value: number): string {
   if (value > 0) return `+${value}`;
@@ -36,8 +36,46 @@ export function AppliedEffectList({ effects }: { effects: readonly AppliedEffect
             {effect.before} → <span className="font-semibold text-parchment">{effect.after}</span>{' '}
             <span className={effect.applied < 0 ? 'text-burgundy-bright' : 'text-gold'}>({signed(effect.applied)})</span>
             {effect.applied !== effect.requested ? (
-              <span className="text-parchment-muted"> capped at the 0–100 limit</span>
+              <span className="text-parchment-muted">
+                {effect.requested < 0 && effect.applied > effect.requested
+                  ? ` — only ${Math.abs(effect.applied)} of ${Math.abs(effect.requested)} could be paid`
+                  : ' capped at the 0–100 limit'}
+              </span>
             ) : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Costs that could not be paid in full and what made up for them. Text first,
+ * so the meaning never depends on colour.
+ */
+export function StructuralList({
+  items,
+  flagLabel,
+  projected = false,
+}: {
+  items: readonly StructuralConsequence[];
+  flagLabel: (flag: string) => string;
+  projected?: boolean;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="mt-2 space-y-2" data-testid={projected ? 'projected-unpaid' : 'unpaid-costs'}>
+      {items.map((item) => (
+        <li key={`${item.resource}-${item.flag}`} className="border-l-2 border-burgundy-bright pl-3 font-sans text-sm">
+          <span className="block font-semibold text-burgundy-bright">
+            {projected ? 'Cannot be paid in full: ' : 'Could not be paid in full: '}
+            {item.unpaid} {RESOURCE_LABELS[item.resource]}
+          </span>
+          <span className="block text-parchment">{item.explanation}</span>
+          <span className="mt-1 block">
+            {RESOURCE_LABELS[item.transfer.resource]} {projected ? 'would fall' : 'fell'} {item.transfer.before} →{' '}
+            {item.transfer.after} ({signed(item.transfer.applied)}).{' '}
+            <span className="text-parchment-muted">Recorded: {flagLabel(item.flag)}.</span>
           </span>
         </li>
       ))}

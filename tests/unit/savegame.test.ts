@@ -26,7 +26,7 @@ describe('serializeSave', () => {
       format: SAVE_FORMAT,
       formatVersion: 1,
       scenarioId: 'rome-alternate',
-      scenarioVersion: 4,
+      scenarioVersion: 5,
       savedAt: '2026-10-15T20:00:00.000Z',
       choices: ['reform-taxation', 'hold-italy'],
     });
@@ -76,29 +76,33 @@ describe('parseSave', () => {
     expect(parseSave(rome, saveWith({ scenarioId: 'napoleon' })).status).toBe('incompatible');
   });
 
-  it('explains why a version 3 save (Decisions 1–3, ending at the old checkpoint) cannot be loaded', () => {
-    // A real version 3 save: the same choice ids exist, but in version 3 the
-    // game stopped after Decision 3 and nothing due in 472 had happened yet.
-    // Replaying it now would silently land somewhere else, so it is refused.
-    const v3 = parseSave(rome, saveWith({ scenarioVersion: 3, choices: ['pay-the-armies', 'hold-italy', 'join-expedition'] }));
-    expect(v3.status).toBe('incompatible');
-    if (v3.status !== 'incompatible') return;
-    expect(v3.reason).toContain('earlier version of this campaign (version 3; this is version 4)');
-    expect(v3.reason).toContain('cannot be replayed exactly');
-    expect(v3.reason).toContain('Version 4: Decision 4, imperial legitimacy');
-    expect(v3.reason).not.toContain('Version 3:');
+  it('explains why a version 4 save (Decisions 1–4, ending at the old checkpoint) cannot be loaded', () => {
+    // A real version 4 save: the same choice ids exist, but in version 4 the game
+    // stopped at a checkpoint after Decision 4, nothing due in 475 had happened,
+    // and an unpaid cost simply vanished at 0. Replaying it now would silently
+    // land somewhere else with different numbers, so it is refused.
+    const v4 = parseSave(
+      rome,
+      saveWith({ scenarioVersion: 4, choices: ['provincial-revenue', 'field-army', 'join-expedition', 'bargain-with-regions'] }),
+    );
+    expect(v4.status).toBe('incompatible');
+    if (v4.status !== 'incompatible') return;
+    expect(v4.reason).toContain('earlier version of this campaign (version 4; this is version 5)');
+    expect(v4.reason).toContain('cannot be replayed exactly');
+    expect(v4.reason).toContain('Version 5: Decision 5, the final crisis, and the three endings');
+    expect(v4.reason).not.toContain('Version 4:');
   });
 
   it('lists every change since an older save', () => {
     const v2 = parseSave(rome, saveWith({ scenarioVersion: 2, choices: ['reform-taxation', 'field-army'] }));
     if (v2.status !== 'incompatible') throw new Error('expected incompatible');
-    expect(v2.reason).toContain('(version 2; this is version 4)');
-    expect(v2.reason).toMatch(/Version 3: Decision 3.*Version 4: Decision 4/);
+    expect(v2.reason).toContain('(version 2; this is version 5)');
+    expect(v2.reason).toMatch(/Version 3: Decision 3.*Version 4: Decision 4.*Version 5: Decision 5/);
   });
 
   it('explains newer and unlabelled saves differently', () => {
     const newer = parseSave(rome, saveWith({ scenarioVersion: 9 }));
-    if (newer.status === 'incompatible') expect(newer.reason).toMatch(/newer than this site's version 4/);
+    if (newer.status === 'incompatible') expect(newer.reason).toMatch(/newer than this site's version 5/);
     else throw new Error('expected incompatible');
     const unlabelled = parseSave(rome, saveWith({ scenarioVersion: '3' }));
     if (unlabelled.status === 'incompatible') expect(unlabelled.reason).toMatch(/does not say which version/);
@@ -113,14 +117,30 @@ describe('parseSave', () => {
     ).toBe('corrupt');
   });
 
-  it('restores a decision 4 save exactly, including the report and what is still to come', () => {
+  it('restores a decision 4 save exactly, at decision 5', () => {
     const path = ['provincial-revenue', 'field-army', 'join-expedition', 'bargain-with-regions'];
     const loaded = parseSave(rome, saveWith({ choices: path }));
     if (loaded.status !== 'restored') throw new Error('expected restored');
-    expect(loaded.state.currentEventId).toBe('checkpoint-d5');
-    expect(loaded.state.resources).toEqual({ economy: 10, military: 49, unity: 55, legitimacy: 37 });
+    expect(loaded.state.currentEventId).toBe('d5-final-crisis');
+    expect(loaded.state.resources).toEqual({ economy: 4, military: 52, unity: 53, legitimacy: 37 });
     expect(loaded.state.records[3]!.narrative!.situation).toMatch(/treasury is all but empty/);
     expect(JSON.stringify(loaded.state)).toBe(JSON.stringify(replay(rome, path)));
+  });
+
+  it('restores a finished campaign with its ending, unpaid costs and long-term consequences', () => {
+    const path = ['provincial-revenue', 'field-army', 'join-expedition', 'bargain-with-regions', 'defend-imperial-office'];
+    const loaded = parseSave(rome, saveWith({ choices: path }));
+    if (loaded.status !== 'restored') throw new Error('expected restored');
+    expect(loaded.state.currentEventId).toBe('settlement-476');
+    expect(loaded.state.endingId).toBe('fragmented-survival');
+    expect(loaded.state.flags).toContain('treasury-defaulted');
+    expect(loaded.state.pending.map((p) => p.consequenceId)).toEqual(['usurper-threat']);
+    expect(JSON.stringify(loaded.state)).toBe(JSON.stringify(replay(rome, path)));
+  });
+
+  it('rejects a save that continues past the ending', () => {
+    const path = ['provincial-revenue', 'field-army', 'join-expedition', 'bargain-with-regions', 'defend-imperial-office', 'defend-imperial-office'];
+    expect(parseSave(rome, saveWith({ choices: path })).status).toBe('corrupt');
   });
 
   it('rejects malformed or invalid choice lists', () => {

@@ -9,7 +9,7 @@ describe('replayWithEvents (data for the future Animation Studio)', () => {
 
   it('lists decisions and consequences in the order they happen', () => {
     const { events } = replayWithEvents(rome, path);
-    expect(events.map((e) => (e.kind === 'decision' ? `decide:${e.decisionId}` : `${e.year}:${e.consequenceId}`))).toEqual([
+    expect(events.map((e) => (e.kind === 'decision' ? `decide:${e.decisionId}` : e.kind === 'consequence' ? `${e.year}:${e.consequenceId}` : `end:${e.endingId}`))).toEqual([
       'decide:d1-fiscal-survival',
       '459:tax-reform-revenue',
       'decide:d2-border-defence',
@@ -45,9 +45,10 @@ describe('replayWithEvents (data for the future Animation Studio)', () => {
     const regions = new Set<string>(SCHEMATIC_REGIONS);
     for (const p of enumeratePaths(rome)) {
       for (const e of replayWithEvents(rome, p).events) {
-        for (const cue of e.mapCues) for (const r of cue.regions) expect(regions.has(r)).toBe(true);
+        if (e.kind !== 'ending') for (const cue of e.mapCues) for (const r of cue.regions) expect(regions.has(r)).toBe(true);
         if (e.kind === 'consequence' && !e.triggered) expect(e.mapCues).toEqual([]);
         if (e.kind === 'decision') expect(e.mapCues.length).toBeGreaterThan(0);
+        if (e.kind === 'ending') expect(e.year).toBe(476);
       }
     }
     const lapsed = replayWithEvents(rome, ['reform-taxation', 'hold-italy']).events.find(
@@ -68,16 +69,42 @@ describe('replayWithEvents (data for the future Animation Studio)', () => {
 
   it('places the 472 consequences between Decision 3 and Decision 4, including a lapsed one', () => {
     const { events } = replayWithEvents(rome, ['reform-taxation', 'hold-italy', 'treaty-with-gaiseric', 'bargain-with-regions']);
-    expect(events.slice(-3).map((e) => (e.kind === 'decision' ? `decide:${e.decisionId}` : `${e.year}:${e.consequenceId}:${e.triggered}`))).toEqual([
+    const label = (e: (typeof events)[number]) =>
+      e.kind === 'decision' ? `decide:${e.decisionId}` : e.kind === 'consequence' ? `${e.year}:${e.consequenceId}:${e.triggered}` : `end:${e.endingId}`;
+    expect(events.slice(-4).map(label)).toEqual([
       '472:treaty-eastern-resentment:true',
       '472:treaty-holds:false',
       'decide:d4-imperial-legitimacy',
+      '475:regional-levies:true',
     ]);
-    const d4 = events.at(-1);
+    const d4 = events.at(-2);
     if (d4?.kind !== 'decision') throw new Error('expected decision');
     expect(d4.year).toBe(472);
     expect(d4.narrative?.situation).toBeTruthy();
     expect(d4.mapCues.length).toBeGreaterThan(0);
+  });
+
+  it('a finished campaign ends with the 476 consequences and then the ending, in that order', () => {
+    const path = ['provincial-revenue', 'field-army', 'join-expedition', 'bargain-with-regions', 'defend-imperial-office'];
+    const { events, state } = replayWithEvents(rome, path);
+    const last = events.at(-1);
+    expect(last).toEqual({
+      kind: 'ending',
+      sequence: events.length,
+      fiction: true,
+      year: 476,
+      endingId: 'fragmented-survival',
+      category: 'fragmented-survival',
+      ruleId: 'fs-order-persists',
+    });
+    const d5 = events.findIndex((e) => e.kind === 'decision' && e.decisionId === 'd5-final-crisis');
+    const between = events.slice(d5 + 1, -1);
+    expect(between.length).toBeGreaterThan(0);
+    expect(between.every((e) => e.kind === 'consequence' && e.year === 476)).toBe(true);
+    expect(state.endingId).toBe('fragmented-survival');
+    // The unpaid expedition debts of 472 travel with their consequence event.
+    const debts = events.find((e) => e.kind === 'consequence' && e.consequenceId === 'expedition-debts');
+    expect(debts?.kind === 'consequence' && debts.structural.map((s) => s.flag)).toEqual(['treasury-defaulted']);
   });
 
   it('rejects an invalid path instead of inventing events', () => {

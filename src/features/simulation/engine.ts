@@ -5,7 +5,6 @@ import {
   RESOURCE_MIN,
   SIMULATION_SCHEMA_VERSION,
   type AlternateScenario,
-  type AppliedConditional,
   type AppliedEffect,
   type Choice,
   type ChoiceRecord,
@@ -13,6 +12,7 @@ import {
   type ConditionalEffect,
   type DecisionEvent,
   type Effect,
+  type EndingRule,
   type PendingConsequence,
   type Requirement,
   type ResolvedConsequence,
@@ -21,6 +21,7 @@ import {
   type Resources,
   type ScenarioNode,
   type SimulationState,
+  type StructuralConsequence,
 } from '../../types/simulation';
 
 /**
@@ -28,7 +29,12 @@ import {
  *
  * - No randomness. The same scenario and the same choices always give the same state.
  * - No mutation. Every function returns new objects; inputs are never changed.
- * - Resources are clamped to 0–100 after every effect.
+ * - A decision's effects (base and conditional) are SETTLED TOGETHER: one net
+ *   change per resource, clamped to 0–100 once. Each consequence is settled the
+ *   same way when it comes due.
+ * - A cost that cannot be paid in full (the net change would take a resource
+ *   below 0) is not silently absorbed: the scenario's shortfall rule turns the
+ *   unpaid part into a visible structural consequence (see `settleEffects`).
  * - Nothing here touches actual-history data.
  */
 
@@ -117,6 +123,8 @@ export type ChoiceEvaluation = {
   readonly applicableConditionals: readonly ConditionalEffect[];
   /** Total change per resource if committed now (base + conditional), after clamping. */
   readonly projected: readonly AppliedEffect[];
+  /** Costs that could not be paid in full if committed now, and what would make up for them. */
+  readonly projectedStructural: readonly StructuralConsequence[];
 };
 
 export function evaluateChoices(scenario: AlternateScenario, state: SimulationState): ChoiceEvaluation[] {
@@ -125,12 +133,14 @@ export function evaluateChoices(scenario: AlternateScenario, state: SimulationSt
   return decision.choices.map((choice) => {
     const requirements = (choice.prerequisites ?? []).map((req) => checkRequirement(scenario, state, req));
     const applicableConditionals = applicableConditionalEffects(scenario, state, choice);
+    const settlement = settleEffects(scenario, state.resources, state.flags, immediateEffects(choice, applicableConditionals));
     return {
       choice,
       available: requirements.every((check) => check.met),
       requirements,
       applicableConditionals,
-      projected: computeImmediate(state.resources, choice, applicableConditionals).total,
+      projected: settlement.applied,
+      projectedStructural: settlement.structural,
     };
   });
 }
@@ -142,21 +152,6 @@ function applicableConditionalEffects(
   choice: Choice,
 ): ConditionalEffect[] {
   return (choice.conditionalEffects ?? []).filter((item) => checkRequirement(scenario, state, item.when).met);
-}
-
-function applyEffectList(
-  resources: Resources,
-  effects: readonly Effect[],
-): { resources: Resources; applied: AppliedEffect[] } {
-  const next: Record<ResourceKey, number> = { ...resources };
-  const applied: AppliedEffect[] = [];
-  for (const effect of effects) {
-    const before = next[effect.resource];
-    const after = clampResource(before + effect.delta);
-    next[effect.resource] = after;
-    applied.push({ resource: effect.resource, requested: effect.delta, applied: after - before, before, after });
-  }
-  return { resources: next, applied };
 }
 
 /** Sums sequential changes per resource, keeping the first "before" and last "after". */
@@ -181,17 +176,73 @@ export function totalPerResource(effects: readonly AppliedEffect[]): AppliedEffe
   return order.map((key) => totals.get(key)!);
 }
 
-function computeImmediate(resources: Resources, choice: Choice, conditionals: readonly ConditionalEffect[]) {
-  const base = applyEffectList(resources, choice.effects);
-  let current = base.resources;
-  const conditional: AppliedConditional[] = [];
-  for (const item of conditionals) {
-    const result = applyEffectList(current, item.effects);
-    current = result.resources;
-    conditional.push({ id: item.id, explanation: item.explanation, effects: result.applied });
+function immediateEffects(choice: Choice, conditionals: readonly ConditionalEffect[]): Effect[] {
+  return [...choice.effects, ...conditionals.flatMap((item) => item.effects)];
+}
+
+export type Settlement = {
+  readonly resources: Resources;
+  /** One entry per resource touched: the net change requested and what was applied. */
+  readonly applied: AppliedEffect[];
+  readonly structural: StructuralConsequence[];
+  /** Flags set by structural consequences that were not set before. */
+  readonly newFlags: string[];
+};
+
+/**
+ * Settles a list of effects together: the net change per resource is applied
+ * once and clamped to 0–100. If a net cost would take a resource below 0, the
+ * unpaid part is a shortfall. Where the scenario has a shortfall rule for that
+ * resource, half the shortfall (rounded up) falls on the rule's target resource
+ * and the rule's flag is set — a structural consequence, recorded with its
+ * reason. There is no further chain: if the target is also exhausted, the
+ * transfer is itself capped at 0 and the record shows it.
+ */
+export function settleEffects(
+  scenario: AlternateScenario,
+  resources: Resources,
+  flags: readonly string[],
+  effects: readonly Effect[],
+): Settlement {
+  const order: ResourceKey[] = [];
+  const net = new Map<ResourceKey, number>();
+  for (const effect of effects) {
+    if (!net.has(effect.resource)) order.push(effect.resource);
+    net.set(effect.resource, (net.get(effect.resource) ?? 0) + effect.delta);
   }
-  const all = [...base.applied, ...conditional.flatMap((item) => item.effects)];
-  return { resources: current, conditional, total: totalPerResource(all) };
+  const next: Record<ResourceKey, number> = { ...resources };
+  const applied: AppliedEffect[] = [];
+  const unpaid = new Map<ResourceKey, number>();
+  for (const key of order) {
+    const requested = net.get(key) ?? 0;
+    const before = next[key];
+    const wanted = before + requested;
+    const after = clampResource(wanted);
+    next[key] = after;
+    applied.push({ resource: key, requested, applied: after - before, before, after });
+    if (wanted < RESOURCE_MIN) unpaid.set(key, RESOURCE_MIN - wanted);
+  }
+  const structural: StructuralConsequence[] = [];
+  const newFlags: string[] = [];
+  for (const key of RESOURCE_KEYS) {
+    const amount = unpaid.get(key);
+    if (!amount) continue;
+    const rule = scenario.shortfallRules?.find((item) => item.resource === key);
+    if (!rule) continue;
+    const delta = -Math.ceil(amount / 2);
+    const before = next[rule.transferTo];
+    const after = clampResource(before + delta);
+    next[rule.transferTo] = after;
+    structural.push({
+      resource: key,
+      unpaid: amount,
+      explanation: rule.explanation,
+      transfer: { resource: rule.transferTo, requested: delta, applied: after - before, before, after },
+      flag: rule.flag,
+    });
+    if (!flags.includes(rule.flag) && !newFlags.includes(rule.flag)) newFlags.push(rule.flag);
+  }
+  return { resources: next, applied, structural, newFlags };
 }
 
 /**
@@ -218,10 +269,12 @@ function resolveDue(
     if (!definition) throw new Error(`Unknown scheduled consequence "${pending.consequenceId}".`);
     const triggered = definition.condition ? checkRequirement(scenario, current, definition.condition).met : true;
     let applied: AppliedEffect[] = [];
+    let structural: StructuralConsequence[] = [];
     if (triggered) {
-      const result = applyEffectList(current.resources, definition.effects);
+      const result = settleEffects(scenario, current.resources, current.flags, definition.effects);
       applied = result.applied;
-      current = { ...current, resources: result.resources };
+      structural = result.structural;
+      current = { ...current, resources: result.resources, flags: [...current.flags, ...result.newFlags] };
     }
     resolved.push({
       ...pending,
@@ -230,6 +283,7 @@ function resolveDue(
       triggered,
       explanation: triggered ? definition.explanation : (definition.lapsedExplanation ?? 'This did not come to pass.'),
       effects: applied,
+      structural,
     });
   }
   const dueIds = new Set(due.map((item) => item.consequenceId));
@@ -283,7 +337,12 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
   const next = getNode(scenario, choice.nextEventId);
   if (!next) throw new Error(`Choice ${choice.id} leads to unknown node "${choice.nextEventId}".`);
 
-  const immediate = computeImmediate(state.resources, choice, evaluation.applicableConditionals);
+  const immediate = settleEffects(
+    scenario,
+    state.resources,
+    state.flags,
+    immediateEffects(choice, evaluation.applicableConditionals),
+  );
   const newFlags = (choice.flagsSet ?? []).filter((flag) => !state.flags.includes(flag));
   const scheduled: PendingConsequence[] = (choice.consequences ?? []).map((item) => ({
     consequenceId: item.id,
@@ -297,8 +356,13 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
     decisionId: decision.id,
     choiceId: choice.id,
     year: decision.year,
-    effects: immediate.total,
-    conditional: immediate.conditional,
+    effects: immediate.applied,
+    structural: immediate.structural,
+    conditional: evaluation.applicableConditionals.map((item) => ({
+      id: item.id,
+      explanation: item.explanation,
+      effects: item.effects,
+    })),
     scheduled: scheduled.map((item) => item.consequenceId),
     flagsSet: newFlags,
     ...(narrative ? { narrative } : {}),
@@ -309,16 +373,86 @@ export function applyChoice(scenario: AlternateScenario, state: SimulationState,
     currentEventId: next.id,
     year: next.year,
     resources: immediate.resources,
-    flags: [...state.flags, ...newFlags],
+    flags: [...state.flags, ...newFlags, ...immediate.newFlags.filter((flag) => !newFlags.includes(flag))],
     choicesMade: [...state.choicesMade, choice.id],
     records: [...state.records, record],
     pending: [...state.pending, ...scheduled],
     eventLog: [...state.eventLog, `${decision.title}: ${choice.label}`],
-    endingId: next.kind === 'terminal' && next.status === 'ending' ? next.id : state.endingId,
   };
 
   // Arriving at the next point in time: anything now due takes effect (or lapses).
-  return { ok: true, record, state: resolveDue(scenario, committed, next.id, next.year) };
+  const arrived = resolveDue(scenario, committed, next.id, next.year);
+  if (next.kind !== 'terminal' || next.status !== 'ending') return { ok: true, record, state: arrived };
+
+  // Arriving at an ending: classify it from the complete state, after everything due has resolved.
+  const classification = classifyEnding(scenario, arrived);
+  return {
+    ok: true,
+    record,
+    state: classification
+      ? { ...arrived, endingId: classification.endingId, endingRuleId: classification.ruleId }
+      : { ...arrived, endingId: next.id },
+  };
+}
+
+/**
+ * Looming threats: consequences still pending (due after the current year) that
+ * would do harm — at least one negative effect — and whose condition already
+ * holds, so they would trigger if nothing changed.
+ */
+export function loomingThreats(scenario: AlternateScenario, state: SimulationState): PendingConsequence[] {
+  return state.pending.filter((item) => {
+    const definition = findConsequence(scenario, item.consequenceId);
+    if (!definition || !definition.effects.some((effect) => effect.delta < 0)) return false;
+    return definition.condition ? checkRequirement(scenario, state, definition.condition).met : true;
+  });
+}
+
+export type EndingCheck = { readonly description: string; readonly met: boolean };
+export type EndingRuleEvaluation = {
+  readonly rule: EndingRule;
+  readonly checks: readonly EndingCheck[];
+  readonly matched: boolean;
+};
+export type EndingClassification = {
+  readonly endingId: string;
+  readonly ruleId: string;
+  readonly looming: readonly PendingConsequence[];
+  /** Every rule checked, in order, up to and including the one that matched. */
+  readonly evaluated: readonly EndingRuleEvaluation[];
+};
+
+function describeEndingCondition(scenario: AlternateScenario, state: SimulationState, requirement: Requirement): EndingCheck {
+  const check = checkRequirement(scenario, state, requirement);
+  if (requirement.flag !== undefined) return { met: check.met, description: flagLabel(scenario, requirement.flag) };
+  if (requirement.notFlag !== undefined) return { met: check.met, description: `Not the case: ${flagLabel(scenario, requirement.notFlag)}` };
+  return { met: check.met, description: check.description };
+}
+
+/**
+ * Classifies the ending from the complete campaign state: resources, flags set
+ * by every decision (and by unpaid costs), and the harmful consequences still
+ * looming. Rules are checked in order; the first whose conditions all hold wins.
+ * Returns undefined when the scenario has no ending rules.
+ */
+export function classifyEnding(scenario: AlternateScenario, state: SimulationState): EndingClassification | undefined {
+  const rules = scenario.endingRules;
+  if (!rules || rules.length === 0) return undefined;
+  const looming = loomingThreats(scenario, state);
+  const evaluated: EndingRuleEvaluation[] = [];
+  for (const rule of rules) {
+    const checks = rule.conditions.map((condition) => describeEndingCondition(scenario, state, condition));
+    if (rule.maxLooming !== undefined) {
+      checks.push({
+        met: looming.length <= rule.maxLooming,
+        description: `At most ${rule.maxLooming} serious threat${rule.maxLooming === 1 ? '' : 's'} still looming (there ${looming.length === 1 ? 'is' : 'are'} ${looming.length})`,
+      });
+    }
+    const matched = checks.every((check) => check.met);
+    evaluated.push({ rule, checks, matched });
+    if (matched) return { endingId: rule.endingId, ruleId: rule.id, looming, evaluated };
+  }
+  throw new Error(`Scenario ${scenario.id}: no ending rule matched; the last rule must be unconditional.`);
 }
 
 /**

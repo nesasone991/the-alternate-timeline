@@ -3,8 +3,10 @@ import type {
   AlternateScenario,
   AppliedConditional,
   AppliedEffect,
+  EndingCategory,
   ResolvedNarrative,
   SimulationState,
+  StructuralConsequence,
 } from '../../types/simulation';
 import { applyChoice, createInitialState, findConsequence, getNode } from './engine';
 
@@ -31,6 +33,8 @@ export type StoryEvent =
       readonly outcome: string;
       readonly narrative?: ResolvedNarrative;
       readonly effects: readonly AppliedEffect[];
+      /** Costs that could not be paid in full, and what made up for them. */
+      readonly structural: readonly StructuralConsequence[];
       readonly conditional: readonly AppliedConditional[];
       readonly flagsSet: readonly string[];
       readonly mapCues: readonly MapCue[];
@@ -46,8 +50,19 @@ export type StoryEvent =
       readonly triggered: boolean;
       readonly explanation: string;
       readonly effects: readonly AppliedEffect[];
+      readonly structural: readonly StructuralConsequence[];
       /** Empty when the consequence lapsed: nothing happened, so nothing to show. */
       readonly mapCues: readonly MapCue[];
+    }
+  | {
+      /** The last event of a finished campaign: which ending it reached, after everything due had resolved. */
+      readonly kind: 'ending';
+      readonly sequence: number;
+      readonly fiction: true;
+      readonly year: number;
+      readonly endingId: string;
+      readonly category: EndingCategory;
+      readonly ruleId: string;
     };
 
 export function replayWithEvents(
@@ -76,6 +91,7 @@ export function replayWithEvents(
       outcome: choice?.outcome ?? '',
       ...(record.narrative ? { narrative: record.narrative } : {}),
       effects: record.effects,
+      structural: record.structural,
       conditional: record.conditional,
       flagsSet: record.flagsSet,
       mapCues: choice?.mapCues ?? [],
@@ -94,10 +110,23 @@ export function replayWithEvents(
         triggered: item.triggered,
         explanation: item.explanation,
         effects: item.effects,
+        structural: item.structural,
         mapCues: item.triggered ? (definition?.mapCues ?? []) : [],
       });
     }
     state = result.state;
+  }
+  const ending = scenario.endings?.find((item) => item.id === state.endingId);
+  if (ending && state.endingRuleId) {
+    events.push({
+      kind: 'ending',
+      sequence: events.length + 1,
+      fiction: true,
+      year: state.year,
+      endingId: ending.id,
+      category: ending.category,
+      ruleId: state.endingRuleId,
+    });
   }
   return { state, events };
 }

@@ -82,7 +82,7 @@ describe('workspace', () => {
     expect((screen.getByRole('slider', { name: 'Year' }) as HTMLInputElement).disabled).toBe(true);
   });
 
-  it('plays decisions 1 to 4, saves after each, and restores the save on a fresh mount', async () => {
+  it('plays all five decisions to an ending, saves after each, and restores the save on a fresh mount', async () => {
     const view = renderAt('/campaigns/fall-of-rome/workspace?mode=alternate');
     await screen.findByRole('heading', { name: 'Fiscal survival' });
     expect(screen.getByTestId('resource-economy').textContent).toMatch(/^40 \/ 100/);
@@ -121,22 +121,32 @@ describe('workspace', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: /Strike a bargain with the regional powers/ }));
     fireEvent.click(confirm());
-    expect(screen.getByRole('heading', { name: 'You chose: Strike a bargain with the regional powers' })).toBeTruthy();
+
+    // Decision 5 opens after the 475 consequences (the regional levies).
+    expect(screen.getByRole('heading', { name: 'The final crisis' })).toBeTruthy();
+    expect(screen.getByTestId('order-of-events').textContent).toContain('Then the settlement of c. 476 AD');
     expect(screen.getByTestId('situation-notes').textContent).toContain('gave up Africa');
-    expect(screen.getByTestId('resource-unity').textContent).toMatch(/^36 \/ 100/);
+    expect(screen.getByTestId('resource-military').textContent).toMatch(/^71 \/ 100/);
+
+    fireEvent.click(screen.getByRole('radio', { name: /Defend the imperial office by force/ }));
+    fireEvent.click(confirm());
+    expect(screen.getByRole('heading', { name: 'You chose: Defend the imperial office by force' })).toBeTruthy();
+    expect(screen.getByTestId('ending-result').textContent).toContain('Fragmented Survival');
+    expect(screen.getByTestId('resource-legitimacy').textContent).toMatch(/^47 \/ 100/);
     expect(JSON.parse(window.localStorage.getItem('tat.save.rome-alternate') ?? '{}').choices).toEqual([
       'pay-the-armies',
       'hold-italy',
       'fortify-what-remains',
       'bargain-with-regions',
+      'defend-imperial-office',
     ]);
 
-    // A fresh mount (as after a page refresh) restores the same state.
+    // A fresh mount (as after a page refresh) restores the same state, ending included.
     view.unmount();
     renderAt('/campaigns/fall-of-rome/workspace?mode=alternate');
-    await screen.findByRole('heading', { name: 'You chose: Strike a bargain with the regional powers' });
+    await screen.findByRole('heading', { name: 'You chose: Defend the imperial office by force' });
     expect(screen.getByText(/Your progress was restored from this browser/)).toBeTruthy();
-    expect(screen.getByTestId('resource-unity').textContent).toMatch(/^36 \/ 100/);
+    expect(screen.getByTestId('ending-result').textContent).toContain('Fragmented Survival');
 
     fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
     expect(screen.getByRole('heading', { name: 'Fiscal survival' })).toBeTruthy();

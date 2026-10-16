@@ -10,8 +10,8 @@ import type {
   ResolvedNarrative,
   SimulationState,
 } from '../../types/simulation';
-import { consequencesResolvedAt, decisionNumber, evaluateChoices, flagLabel, getCurrentNode, getNode } from './engine';
-import { AppliedEffectList, EffectChips } from './EffectList';
+import { classifyEnding, consequencesResolvedAt, decisionNumber, evaluateChoices, flagLabel, getCurrentNode, getNode } from './engine';
+import { AppliedEffectList, EffectChips, StructuralList } from './EffectList';
 import type { SaveNotice, SimulationUiState } from './useSimulation';
 
 type DecisionPanelProps = {
@@ -74,6 +74,14 @@ export function DecisionPanel(props: DecisionPanelProps) {
             year={yearLabel(node.year, node.yearApproximate, era)}
             arrivals={arrivals.length}
             first={ui.state.records.length === 0}
+            leadsToEnding={node.choices.every((choice) => {
+              const next = getNode(scenario, choice.nextEventId);
+              return next?.kind === 'terminal' && next.status === 'ending';
+            })}
+            endingYear={(() => {
+              const next = getNode(scenario, node.choices[0]?.nextEventId ?? '');
+              return next ? yearLabel(next.year, next.yearApproximate, era) : '';
+            })()}
           />
           <CarriedOver scenario={scenario} state={ui.state} lastRecord={lastRecord} arrivals={arrivals} era={era} />
           <DecisionTurn {...props} />
@@ -88,12 +96,18 @@ export function DecisionPanel(props: DecisionPanelProps) {
             </h2>
           )}
           {arrivals.length > 0 ? <Arrivals scenario={scenario} items={arrivals} era={era} /> : null}
-          <Pending scenario={scenario} items={ui.state.pending} era={era} />
+          <Pending
+            scenario={scenario}
+            items={ui.state.pending}
+            era={era}
+            title={ui.state.endingId ? 'Still unresolved after the settlement' : undefined}
+          />
           <div className="mt-6 border-t border-rule-soft pt-5">
             <p className="font-sans text-sm text-gold">{yearLabel(node.year, node.yearApproximate, era)}</p>
             <h3 className="mt-1 text-xl text-parchment">{node.title}</h3>
             <p className="mt-2 text-parchment-muted">{node.summary}</p>
           </div>
+          {ui.state.endingId ? <EndingResult scenario={scenario} state={ui.state} /> : null}
         </>
       )}
 
@@ -155,7 +169,19 @@ function SaveNoticeBanner({
  * ambiguous: consequences due by this year have ALREADY been applied (and are
  * included in the statistics) before the player decides.
  */
-function OrderOfEvents({ year, arrivals, first }: { year: string; arrivals: number; first: boolean }) {
+function OrderOfEvents({
+  year,
+  arrivals,
+  first,
+  leadsToEnding,
+  endingYear,
+}: {
+  year: string;
+  arrivals: number;
+  first: boolean;
+  leadsToEnding: boolean;
+  endingYear: string;
+}) {
   return (
     <div className="mt-4 border-l-2 border-teal-bright/70 pl-3" data-testid="order-of-events">
       <p className="font-sans text-xs font-semibold text-parchment-muted">Order of events in {year}</p>
@@ -168,7 +194,14 @@ function OrderOfEvents({ year, arrivals, first }: { year: string; arrivals: numb
               : `No earlier consequences were due by ${year}.`}
         </li>
         <li>You make this decision. Its immediate effects apply as soon as you confirm.</li>
-        <li>Its later consequences arrive in the years shown, before the decision of that year.</li>
+        {leadsToEnding ? (
+          <li>
+            Then the settlement of {endingYear}: everything due by then takes effect, and only after that is the campaign’s
+            ending decided, from the state of the whole empire. Consequences due later remain as threats.
+          </li>
+        ) : (
+          <li>Its later consequences arrive in the years shown, before the decision of that year.</li>
+        )}
       </ol>
     </div>
   );
@@ -249,6 +282,7 @@ function LastOutcome({
       <div className="mt-3 max-w-md">
         <AppliedEffectList effects={record.effects} />
       </div>
+      <StructuralList items={record.structural} flagLabel={(flag) => flagLabel(scenario, flag)} />
       {record.conditional.length > 0 ? (
         <ul className="mt-2 space-y-1 font-sans text-sm text-parchment-muted">
           {record.conditional.map((item) => (
@@ -257,6 +291,44 @@ function LastOutcome({
         </ul>
       ) : null}
       {record.narrative ? <NarrativeReport narrative={record.narrative} /> : null}
+    </div>
+  );
+}
+
+/**
+ * The campaign result: which ending was reached and why, as the rules decided it.
+ * Deliberately minimal — the full ending screen and report are a later milestone.
+ */
+function EndingResult({ scenario, state }: { scenario: AlternateScenario; state: SimulationState }) {
+  const ending = scenario.endings?.find((item) => item.id === state.endingId);
+  const classification = classifyEnding(scenario, state);
+  if (!ending || !classification) return null;
+  const matched = classification.evaluated[classification.evaluated.length - 1]!;
+  return (
+    <div className="mt-6 border border-gold/50 p-4" data-testid="ending-result" role="status">
+      <p className="font-sans text-xs font-semibold text-parchment-muted">
+        Campaign result — fictional alternate history, not what happened
+      </p>
+      <h3 className="mt-1 text-2xl text-parchment">{ending.title}</h3>
+      <p className="mt-1">{ending.summary}</p>
+      <p className="mt-3 font-sans text-sm">
+        <span className="font-semibold text-gold">Why: </span>
+        {matched.rule.explanation}
+      </p>
+      {matched.checks.length > 0 ? (
+        <ul className="mt-2 space-y-0.5 font-sans text-sm">
+          {matched.checks.map((check) => (
+            <li key={check.description}>
+              <span aria-hidden="true">✓ </span>
+              {check.description}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="mt-3 font-sans text-xs text-parchment-muted">
+        A full ending screen, with the settlement, the army, the treasury, the regions and Constantinople, comes in the next
+        development milestone.
+      </p>
     </div>
   );
 }
@@ -359,6 +431,7 @@ function Arrivals({
                 <AppliedEffectList effects={item.effects} />
               </div>
             ) : null}
+            <StructuralList items={item.structural} flagLabel={(flag) => flagLabel(scenario, flag)} />
           </li>
         ))}
       </ul>
@@ -370,15 +443,17 @@ function Pending({
   scenario,
   items,
   era,
+  title = 'Still to come',
 }: {
   scenario: AlternateScenario;
   items: readonly PendingConsequence[];
   era: EraNotation;
+  title?: string;
 }) {
   if (items.length === 0) return null;
   return (
     <div className="mt-4" data-testid="pending-consequences">
-      <p className="font-sans text-xs font-semibold text-parchment-muted">Still to come</p>
+      <p className="font-sans text-xs font-semibold text-parchment-muted">{title}</p>
       <ul className="mt-1 space-y-2">
         {items.map((item) => (
           <li key={item.consequenceId} className="border-l-2 border-dashed border-rule pl-3 text-[0.9375rem]">
@@ -435,7 +510,7 @@ function DecisionTurn({ scenario, ui, era, historicalEvents, onSelect, onConfirm
           Pick an option to see its effects. You can change your mind until you confirm.
         </p>
         <div className="mt-4 grid gap-3">
-          {evaluations.map(({ choice, available, requirements, applicableConditionals, projected }) => {
+          {evaluations.map(({ choice, available, requirements, applicableConditionals, projected, projectedStructural }) => {
             const checked = ui.selectedChoiceId === choice.id;
             return (
               <label
@@ -506,6 +581,16 @@ function DecisionTurn({ scenario, ui, era, historicalEvents, onSelect, onConfirm
                       <span className="mt-2 block font-sans text-sm text-parchment-muted">
                         <span className="font-semibold text-burgundy-bright">Risk: </span>
                         {choice.warning}
+                      </span>
+                    ) : null}
+
+                    {available && projectedStructural.length > 0 ? (
+                      <span className="mt-3 block">
+                        <StructuralList
+                          items={projectedStructural}
+                          flagLabel={(flag) => flagLabel(scenario, flag)}
+                          projected
+                        />
                       </span>
                     ) : null}
 

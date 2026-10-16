@@ -148,12 +148,35 @@ const timeline: Timeline = {
       role: 'playable-window',
     },
     {
+      id: 'nepos-474',
+      date: { year: 474, month: 6, precision: 'month' },
+      title: 'Julius Nepos, sent from Constantinople, replaces Glycerius',
+      summary:
+        'In 473 Gundobad, Ricimer’s nephew, raised Glycerius as emperor without eastern approval. The eastern court sent Julius Nepos, commander in Dalmatia, against him. Nepos reached Italy in 474; Glycerius gave way without a fight and was made a bishop, and Nepos was proclaimed emperor with the backing of the eastern emperor Zeno.',
+      sourceIds: ['britannica-julius-nepos', 'wiki-julius-nepos'],
+      certainty: 'well-attested',
+      caveat: 'Sources give 19 or 24 June for the proclamation, and differ on whether Nepos landed at Portus near Rome or at Ravenna.',
+      role: 'playable-window',
+    },
+    {
+      id: 'auvergne-475',
+      date: { year: 475, precision: 'year' },
+      title: 'Nepos gives up the Auvergne to make peace with Euric',
+      summary:
+        'To end the war in Gaul, Nepos made peace with the Visigothic king Euric in 475, giving up the Auvergne, whose Gallo-Roman leaders had held out against the Visigoths. Euric, until then formally a federate of the empire, was now recognised as an independent king.',
+      sourceIds: ['wiki-julius-nepos', 'wiki-euric', 'britannica-euric'],
+      certainty: 'contested',
+      caveat:
+        'The sources consulted describe the terms differently: one stresses the cession of the Auvergne, another Provence and the Barcelona region, and whether this was a formal end of federate status is inferred rather than stated.',
+      role: 'playable-window',
+    },
+    {
       id: 'orestes-romulus-475',
       date: { year: 475, precision: 'year' },
       title: 'Orestes ousts Julius Nepos and crowns his son',
       summary:
-        'The general Orestes turns his army on Emperor Julius Nepos, who flees across the Adriatic to Dalmatia. On 31 October Orestes proclaims his young son Romulus emperor.',
-      sourceIds: ['wiki-romulus-augustulus'],
+        'Orestes, the general Nepos had put in command of the army, turns it against him. In August Nepos flees across the Adriatic to Dalmatia, where he keeps his claim to the throne. On 31 October Orestes proclaims his young son Romulus emperor, a ruler Constantinople does not recognise.',
+      sourceIds: ['wiki-romulus-augustulus', 'britannica-romulus-augustulus', 'britannica-julius-nepos', 'wiki-julius-nepos'],
       certainty: 'well-attested',
       role: 'playable-window',
     },
@@ -162,12 +185,36 @@ const timeline: Timeline = {
       date: { year: 476, precision: 'year' },
       title: 'Odoacer deposes Romulus Augustulus',
       summary:
-        'Odoacer, commander of the army in Italy, defeats and executes Orestes, then deposes Romulus and rules Italy himself while acknowledging the Eastern emperor Zeno. No new Western emperor is proclaimed in Italy.',
-      sourceIds: ['britannica-odoacer', 'wiki-romulus-augustulus'],
+        'The federate soldiers in Italy demand land of their own; Orestes refuses, and they turn to Odoacer, who is proclaimed king. Odoacer defeats and executes Orestes, deposes Romulus — sparing him with a pension in Campania — and rules Italy himself while acknowledging the Eastern emperor Zeno. No new Western emperor is proclaimed in Italy.',
+      sourceIds: ['britannica-odoacer', 'britannica-romulus-augustulus', 'wiki-romulus-augustulus', 'wiki-odoacer'],
       certainty: 'well-attested',
       caveat:
         '476 is the conventional end of the Western Roman Empire, not a single moment of collapse: Roman law, administration and identity continued in Italy, and Julius Nepos kept his claim to the Western throne until 480. Sources consulted place the deposition in late August or on 4 September 476.',
       role: 'anchor',
+    },
+    {
+      id: 'regalia-to-zeno-476',
+      date: { year: 476, precision: 'approximate' },
+      title: 'The Senate sends the Western regalia to Constantinople',
+      summary:
+        'An embassy of the Roman Senate brought the Western imperial insignia to the eastern emperor Zeno with the message that one emperor was enough for the world. Zeno made Odoacer a patrician but urged him to take back Nepos; Odoacer acknowledged Nepos in name, striking coins for him, and otherwise ignored him.',
+      sourceIds: ['wiki-odoacer', 'wiki-julius-nepos'],
+      certainty: 'contested',
+      caveat:
+        'Known mainly from the historian Malchus. The date (476 or 477) and Zeno’s exact terms are uncertain: one account has Zeno grant Odoacer the rank of patrician directly, another has him say it should come from Nepos.',
+      role: 'context',
+    },
+    {
+      id: 'roman-institutions-continue',
+      date: { year: 477, precision: 'approximate' },
+      title: 'Roman institutions continue in Italy under Odoacer',
+      summary:
+        'Odoacer ruled Italy with the cooperation of the Roman Senate. Consuls were still named, senators held the great offices of state and Roman administration carried on; the Senate’s prestige even grew. In the East, the Roman Empire continued under Zeno.',
+      sourceIds: ['wiki-odoacer', 'whe-byzantine-empire'],
+      certainty: 'well-attested',
+      caveat:
+        'How much changed in 476 is debated. Bury saw it as one stage in the dismemberment of the empire rather than its end; others treat it as the end of the Western Empire. This event spans Odoacer’s rule (476–493); the year shown is approximate.',
+      role: 'context',
     },
     {
       id: 'nepos-dies-480',
@@ -175,8 +222,9 @@ const timeline: Timeline = {
       title: 'Julius Nepos is killed in Dalmatia',
       summary:
         'Nepos, still recognised by Constantinople as Western emperor, is murdered. With him the line of Western emperors ends; some historians count him, not Romulus, as the last.',
-      sourceIds: ['wiki-romulus-augustulus'],
+      sourceIds: ['wiki-romulus-augustulus', 'britannica-julius-nepos', 'wiki-julius-nepos'],
       certainty: 'well-attested',
+      caveat: 'Sources give 25 April, 9 May or 22 June 480; historians usually favour 9 May. Who was behind the murder is disputed.',
       role: 'context',
     },
   ],

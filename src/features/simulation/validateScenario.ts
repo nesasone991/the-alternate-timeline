@@ -183,5 +183,58 @@ export function validateScenario(scenario: AlternateScenario, actualEventIds: re
     if (!reached.has(node.id)) errors.push(`Node ${node.id}: unreachable from the start.`);
   }
 
+  // Unpaid costs: at most one rule per resource, a different target, a known flag.
+  const shortfallSeen = new Set<string>();
+  for (const rule of scenario.shortfallRules ?? []) {
+    const where = `Shortfall rule ${rule.resource}`;
+    if (shortfallSeen.has(rule.resource)) errors.push(`${where}: duplicate.`);
+    shortfallSeen.add(rule.resource);
+    if (rule.transferTo === rule.resource) errors.push(`${where}: must fall on a different resource.`);
+    if (!flagIds.has(rule.flag)) errors.push(`${where}: unknown flag "${rule.flag}".`);
+    if (!rule.explanation.trim()) errors.push(`${where}: needs an explanation.`);
+  }
+
+  // Endings: every ending node needs rules; rules point at known endings; the last is unconditional.
+  const endingIds = new Set((scenario.endings ?? []).map((ending) => ending.id));
+  if (endingIds.size !== (scenario.endings ?? []).length) errors.push('Endings: duplicate id.');
+  const hasEndingNode = scenario.nodes.some((node) => node.kind === 'terminal' && node.status === 'ending');
+  const rules = scenario.endingRules ?? [];
+  if (hasEndingNode && rules.length === 0) errors.push('Endings: an ending node needs ending rules.');
+  const ruleIds = new Set<string>();
+  rules.forEach((rule, index) => {
+    const where = `Ending rule ${rule.id}`;
+    if (ruleIds.has(rule.id)) errors.push(`${where}: duplicate id.`);
+    ruleIds.add(rule.id);
+    if (!endingIds.has(rule.endingId)) errors.push(`${where}: unknown ending "${rule.endingId}".`);
+    if (!rule.explanation.trim()) errors.push(`${where}: needs an explanation.`);
+    rule.conditions.forEach((condition) => checkRequirement(where, condition));
+    if (rule.maxLooming !== undefined && (!Number.isInteger(rule.maxLooming) || rule.maxLooming < 0)) {
+      errors.push(`${where}: maxLooming must be a whole number of 0 or more.`);
+    }
+    if (index === rules.length - 1 && (rule.conditions.length > 0 || rule.maxLooming !== undefined)) {
+      errors.push(`${where}: the last ending rule must be unconditional, so every state has an ending.`);
+    }
+  });
+  for (const ending of scenario.endings ?? []) {
+    if (!rules.some((rule) => rule.endingId === ending.id)) errors.push(`Ending ${ending.id}: no rule leads to it.`);
+  }
+  if (scenario.endingNarrative) {
+    for (const [section, lines] of Object.entries(scenario.endingNarrative)) {
+      const where = `Ending report ${section}`;
+      if (lines.length === 0) errors.push(`${where}: no lines.`);
+      for (const line of lines) {
+        if (!line.text.trim()) errors.push(`${where}: empty line.`);
+        for (const id of line.endings ?? []) if (!endingIds.has(id)) errors.push(`${where}: unknown ending "${id}".`);
+        for (const condition of line.when ?? []) checkRequirement(where, condition);
+      }
+      const last = lines[lines.length - 1];
+      if (last && (last.endings || (last.when ?? []).length > 0)) {
+        errors.push(`${where}: the last line must apply to every ending and state.`);
+      }
+    }
+  } else if (hasEndingNode) {
+    errors.push('Endings: an ending node needs an ending report.');
+  }
+
   return errors;
 }

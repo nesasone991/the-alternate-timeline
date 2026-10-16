@@ -32,7 +32,7 @@ export const romeModes: readonly ModeAvailability[] = [
     description:
       'Advise the Western court at five turning points between 455 and 476. Each decision changes your resources, closes some options and opens others.',
     available: true,
-    limitation: 'Early preview: the opening decisions are playable. Later decisions and the endings are still being written.',
+    limitation: 'Development preview: all five decisions are playable and every campaign ends in one of three endings. The full ending screen comes next.',
   },
   {
     mode: 'comparison',
@@ -48,13 +48,13 @@ export const romeFeatures: readonly CampaignFeature[] = [
   {
     id: 'timeline',
     title: 'Sourced historical timeline',
-    description: 'Fifteen dated events from 410 to 480, each with sources, date precision and caveats.',
+    description: 'Nineteen dated events from 410 to 480, each with sources, date precision and caveats.',
     status: 'available',
   },
   {
     id: 'decisions',
     title: 'Five strategic decisions',
-    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. The first four are playable now.',
+    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. All five are playable, with three possible endings.',
     status: 'preview',
     plannedPhase: 2,
   },
