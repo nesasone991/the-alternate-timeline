@@ -81,6 +81,15 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
   const focusedEvent = realIndex >= 0 ? timeline.events[realIndex] : undefined;
   const sameYear = focusedEvent ? eventsInYear(timeline, focusedEvent.date.year) : [];
 
+  // Deep link from elsewhere (the ending's "What really happened"): ?event=<id>
+  // opens Real History at that event.
+  const eventParam = searchParams.get('event');
+  useEffect(() => {
+    if (!eventParam) return;
+    const index = timeline.events.findIndex((event) => event.id === eventParam);
+    if (index >= 0) dispatch({ type: 'goToEvent', index });
+  }, [eventParam, timeline]);
+
   const showHistoricalEvent = (eventId: string) => {
     const index = timeline.events.findIndex((event) => event.id === eventId);
     if (index >= 0) dispatch({ type: 'goToEvent', index });
@@ -138,6 +147,7 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
                   onDiscardSave={simulation.discardSave}
                   onDismissNotice={simulation.dismissNotice}
                   onShowHistoricalEvent={showHistoricalEvent}
+                  endingHref={`${campaignPath(campaign.id)}/ending`}
                 />
                 <div className="min-h-64">
                   <MapPlaceholder

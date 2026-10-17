@@ -122,6 +122,14 @@ test('play all five decisions to an ending, refresh to restore, then start over'
   await expectResource(page, 'unity', 9);
   await expectResource(page, 'legitimacy', 70);
 
+  // The full ending experience, reached from the workspace.
+  await page.getByRole('link', { name: 'See the fate of your empire' }).click();
+  await expect(page).toHaveURL(/\/campaigns\/fall-of-rome\/ending$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Imperial Collapse');
+  await expect(page.getByTestId('final-unity')).toContainText('9 / 100');
+  await page.goBack();
+  await expect(page.getByTestId('ending-result')).toContainText('Imperial Collapse');
+
   // Start over clears the save; another refresh stays fresh.
   await page.getByRole('button', { name: 'Start over' }).click();
   await expect(page.getByRole('heading', { name: 'Fiscal survival' })).toBeVisible();

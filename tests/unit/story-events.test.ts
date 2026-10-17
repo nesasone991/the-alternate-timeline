@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { romeAlternateScenario as rome } from '../../src/data/scenarios/rome/alternate';
 import { enumeratePaths, replay } from '../../src/features/simulation/engine';
-import { replayWithEvents } from '../../src/features/simulation/storyEvents';
+import { replayWithEvents, resourceTimeline } from '../../src/features/simulation/storyEvents';
 import { SCHEMATIC_REGIONS } from '../../src/types/map';
 
 describe('replayWithEvents (data for the future Animation Studio)', () => {
@@ -109,5 +109,38 @@ describe('replayWithEvents (data for the future Animation Studio)', () => {
 
   it('rejects an invalid path instead of inventing events', () => {
     expect(() => replayWithEvents(rome, ['reform-taxation', 'hold-italy', 'join-expedition'])).toThrow();
+  });
+});
+
+describe('resourceTimeline (the ending screen’s resource history)', () => {
+  it('starts from the authored values and ends at the replayed final state, for every path', () => {
+    for (const p of enumeratePaths(rome)) {
+      const points = resourceTimeline(rome, p);
+      expect(points[0]!.kind).toBe('start');
+      expect(points[0]!.resources).toEqual({ economy: 40, military: 45, unity: 35, legitimacy: 30 });
+      expect(points.at(-1)!.resources).toEqual(replay(rome, p).resources);
+      expect(JSON.stringify(points)).toBe(JSON.stringify(resourceTimeline(rome, p)));
+    }
+  });
+
+  it('just before each decision, matches the state replay gives at that decision', () => {
+    for (const p of enumeratePaths(rome)) {
+      const points = resourceTimeline(rome, p);
+      const decisions = points.map((point, index) => ({ point, index })).filter(({ point }) => point.kind === 'decision');
+      decisions.forEach(({ index }, i) => {
+        expect(points[index - 1]!.resources).toEqual(replay(rome, p.slice(0, i)).resources);
+      });
+    }
+  });
+
+  it('includes lapsed consequences without changing anything, and unpaid-cost transfers', () => {
+    const points = resourceTimeline(rome, ['reform-taxation', 'hold-italy', 'treaty-with-gaiseric', 'bargain-with-regions', 'defend-imperial-office']);
+    const lapsed = points.find((point) => point.kind === 'consequence' && point.triggered === false)!;
+    const before = points[points.indexOf(lapsed) - 1]!;
+    expect(lapsed.resources).toEqual(before.resources);
+
+    const unpaid = resourceTimeline(rome, ['provincial-revenue', 'field-army', 'join-expedition']);
+    const debts = unpaid.find((point) => point.label.startsWith('Debts from the expedition'))!;
+    expect(debts.resources).toEqual({ economy: 0, military: 51, unity: 47, legitimacy: 33 });
   });
 });

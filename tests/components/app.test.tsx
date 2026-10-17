@@ -165,6 +165,60 @@ describe('workspace', () => {
   });
 });
 
+describe('ending experience', () => {
+  const SAVE_KEY = 'tat.save.rome-alternate';
+  const seed = (choices: string[]) =>
+    window.localStorage.setItem(
+      SAVE_KEY,
+      JSON.stringify({
+        format: 'the-alternate-timeline/save',
+        formatVersion: 1,
+        scenarioId: 'rome-alternate',
+        scenarioVersion: 5,
+        savedAt: '2026-10-17T10:00:00.000Z',
+        choices,
+      }),
+    );
+
+  it('shows the ending of a finished campaign, replays it read-only and restarts only after confirmation', async () => {
+    seed(['pay-the-armies', 'hold-italy', 'treaty-with-gaiseric', 'bargain-with-regions', 'defend-imperial-office']);
+    const saved = window.localStorage.getItem(SAVE_KEY);
+    renderAt('/campaigns/fall-of-rome/ending');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Imperial Survival' })).toBeTruthy();
+    expect(screen.getByTestId('fate-hero').getAttribute('data-ending-category')).toBe('imperial-survival');
+    expect(screen.getAllByText('Fictional alternate history').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('ending-introduction').textContent).toContain('The emperor defended his throne and won');
+    expect(screen.getByTestId('final-economy').textContent).toMatch(/26/);
+    expect(screen.getByTestId('decision-review').querySelectorAll('article')).toHaveLength(5);
+    expect(screen.getByRole('heading', { level: 4, name: 'Odoacer deposes Romulus Augustulus' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replay your decisions' }));
+    expect(screen.getByText(/^Step 1 of /)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next step' }));
+    expect(screen.getByText(/^Step 2 of /)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close the replay' }));
+    expect(window.localStorage.getItem(SAVE_KEY)).toBe(saved);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new timeline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Keep this timeline' }));
+    expect(window.localStorage.getItem(SAVE_KEY)).toBe(saved);
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new timeline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Erase it and start again' }));
+    expect(await screen.findByRole('heading', { name: 'Fiscal survival' })).toBeTruthy();
+    expect(window.localStorage.getItem(SAVE_KEY)).toBeNull();
+  });
+
+  it('explains when there is no ending yet', async () => {
+    renderAt('/campaigns/fall-of-rome/ending');
+    expect(await screen.findByRole('heading', { level: 1, name: 'There is no finished campaign here yet' })).toBeTruthy();
+    cleanup();
+    seed(['pay-the-armies', 'hold-italy']);
+    renderAt('/campaigns/fall-of-rome/ending');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your campaign has not reached an ending yet' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Continue your campaign' })).toBeTruthy();
+  });
+});
+
 describe('settings', () => {
   it('saves a changed preference to local storage', () => {
     renderAt('/');

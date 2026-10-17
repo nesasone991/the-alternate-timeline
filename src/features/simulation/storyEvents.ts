@@ -5,6 +5,8 @@ import type {
   AppliedEffect,
   EndingCategory,
   ResolvedNarrative,
+  ResourceKey,
+  Resources,
   SimulationState,
   StructuralConsequence,
 } from '../../types/simulation';
@@ -129,4 +131,55 @@ export function replayWithEvents(
     });
   }
   return { state, events };
+}
+
+/** The four resources at one point of the story, as the engine recorded them. */
+export type ResourcePoint = {
+  /** 0 for the starting state; otherwise the `sequence` of the event after which this holds. */
+  readonly sequence: number;
+  readonly kind: 'start' | 'decision' | 'consequence';
+  readonly year: number;
+  readonly label: string;
+  /** For consequences: false when it lapsed (no change). */
+  readonly triggered?: boolean;
+  readonly resources: Resources;
+};
+
+/**
+ * How the four resources moved through the campaign: the starting values, then
+ * the state after every decision and every consequence that came due (lapsed
+ * ones included, unchanged), in story order.
+ *
+ * Nothing is recalculated: each point copies the `after` values the engine
+ * recorded on the event's applied effects and structural transfers. As a
+ * guard, the last point must equal the replayed final state exactly.
+ */
+export function resourceTimeline(scenario: AlternateScenario, choiceIds: readonly string[]): ResourcePoint[] {
+  const { state, events } = replayWithEvents(scenario, choiceIds);
+  const start = createInitialState(scenario);
+  const points: ResourcePoint[] = [
+    { sequence: 0, kind: 'start', year: getNode(scenario, start.currentEventId)?.year ?? start.year, label: 'Start', resources: start.resources },
+  ];
+  let current: Record<ResourceKey, number> = { ...start.resources };
+  for (const event of events) {
+    if (event.kind === 'ending') continue;
+    const next = { ...current };
+    for (const effect of event.effects) next[effect.resource] = effect.after;
+    for (const item of event.structural) next[item.transfer.resource] = item.transfer.after;
+    current = next;
+    points.push({
+      sequence: event.sequence,
+      kind: event.kind,
+      year: event.year,
+      label: event.kind === 'decision' ? `${event.decisionTitle}: ${event.choiceLabel}` : event.explanation,
+      ...(event.kind === 'consequence' ? { triggered: event.triggered } : {}),
+      resources: next,
+    });
+  }
+  for (const key of Object.keys(state.resources) as ResourceKey[]) {
+    if (current[key] !== state.resources[key]) {
+      throw new Error(`Resource history disagrees with the replayed state for ${key}.`);
+    }
+  }
+  return points;
 }

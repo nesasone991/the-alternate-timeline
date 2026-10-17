@@ -14,6 +14,7 @@ import { RouteLoading } from './RouteLoading';
 // The workspace will grow to hold the map renderer and simulation engine, so it
 // is split into its own chunk and only downloaded when a campaign is opened.
 const WorkspacePage = lazy(() => import('../pages/WorkspacePage'));
+const EndingPage = lazy(() => import('../pages/EndingPage'));
 
 export function AppRoutes() {
   return (
@@ -30,6 +31,14 @@ export function AppRoutes() {
           element={
             <Suspense fallback={<RouteLoading label="Loading the workspace" />}>
               <WorkspacePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="campaigns/:campaignId/ending"
+          element={
+            <Suspense fallback={<RouteLoading label="Loading the ending" />}>
+              <EndingPage />
             </Suspense>
           }
         />

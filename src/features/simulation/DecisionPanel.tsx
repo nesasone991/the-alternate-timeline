@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { Link } from 'react-router';
 import { FictionBadge } from '../../components/ui/Badges';
 import { formatYear, type EraNotation } from '../../lib/dates';
 import type { HistoricalEvent } from '../../types/history';
@@ -29,6 +30,8 @@ type DecisionPanelProps = {
   onDiscardSave: () => void;
   onDismissNotice: () => void;
   onShowHistoricalEvent: (eventId: string) => void;
+  /** Where the ending experience lives, once the campaign has ended. */
+  endingHref?: string;
 };
 
 function yearLabel(year: number, approximate: boolean, era: EraNotation): string {
@@ -107,7 +110,7 @@ export function DecisionPanel(props: DecisionPanelProps) {
             <h3 className="mt-1 text-xl text-parchment">{node.title}</h3>
             <p className="mt-2 text-parchment-muted">{node.summary}</p>
           </div>
-          {ui.state.endingId ? <EndingResult scenario={scenario} state={ui.state} /> : null}
+          {ui.state.endingId ? <EndingResult scenario={scenario} state={ui.state} endingHref={props.endingHref} /> : null}
         </>
       )}
 
@@ -299,7 +302,15 @@ function LastOutcome({
  * The campaign result: which ending was reached and why, as the rules decided it.
  * Deliberately minimal — the full ending screen and report are a later milestone.
  */
-function EndingResult({ scenario, state }: { scenario: AlternateScenario; state: SimulationState }) {
+function EndingResult({
+  scenario,
+  state,
+  endingHref,
+}: {
+  scenario: AlternateScenario;
+  state: SimulationState;
+  endingHref?: string;
+}) {
   const ending = scenario.endings?.find((item) => item.id === state.endingId);
   const classification = classifyEnding(scenario, state);
   if (!ending || !classification) return null;
@@ -325,10 +336,11 @@ function EndingResult({ scenario, state }: { scenario: AlternateScenario; state:
           ))}
         </ul>
       ) : null}
-      <p className="mt-3 font-sans text-xs text-parchment-muted">
-        A full ending screen, with the settlement, the army, the treasury, the regions and Constantinople, comes in the next
-        development milestone.
-      </p>
+      {endingHref ? (
+        <Link to={endingHref} state={{ choices: state.choicesMade }} className="btn btn-primary mt-4">
+          See the fate of your empire
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -345,7 +357,7 @@ const IMPACT_STYLE = {
  * influence, immediate consequences, remaining risks. Every line was chosen
  * from the game state before the choice; all of it is fiction, never sourced history.
  */
-function NarrativeReport({ narrative }: { narrative: ResolvedNarrative }) {
+export function NarrativeReport({ narrative }: { narrative: ResolvedNarrative }) {
   return (
     <div className="mt-4 max-w-[40rem] border border-dashed border-burgundy-bright/40 p-4" data-testid="narrative-report">
       <p className="font-sans text-xs font-semibold text-parchment-muted">
