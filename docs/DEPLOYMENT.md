@@ -34,6 +34,7 @@ Cloudflare's free plan limits that matter here (checked October 2026; check agai
 
 ## Step by step
 
+0. **Make the GitHub repository private** if it is not already: GitHub → the repository → **Settings → General → Danger Zone → Change visibility → Make private**. Private repositories get GitHub's free Actions allowance (2,000 minutes a month on the Free plan); with no spending limit set, GitHub stops jobs at the limit rather than charging.
 1. **Create or sign in to a Cloudflare account** with the owner's email. The free plan is enough. If Cloudflare asks for payment details for Pages, stop: nothing in this project needs them.
 2. In the dashboard open **Workers & Pages → Create → Pages → Connect to Git** (Cloudflare renames menus from time to time; look for creating a *Pages* project from a Git repository, not a Worker).
 3. Authorise the Cloudflare GitHub app for the repository `nesasone991/the-alternate-timeline` only (not all repositories).
@@ -63,7 +64,9 @@ Automated checks cover the build and an emulation of Pages (`wrangler pages dev`
 - [ ] If the feedback link is set: it opens the questionnaire in a new tab.
 - [ ] Deploy a trivial change, keep an old tab open, then click to the ending page in the old tab: it either works or shows "A new version is available" with a reload button.
 
-Optional automated run against the live site (from a computer with the repository and Chromium installed):
+Automated run against the live site, from GitHub Actions (no local setup): **Actions → Verify live site → Run workflow**, enter the address (for example `https://alternate-timeline-beta.pages.dev`), or from a terminal `gh workflow run verify-live.yml -f url=https://<project-name>.pages.dev`. It prints the response headers and `robots.txt`, then runs `tests/e2e/deployment.spec.ts` on desktop and mobile: every route opened directly and reloaded, saves across reloads, a full campaign to the ending page, beta labels, `noindex`, security headers, console errors and requests to other hosts.
+
+The same tests from your own computer (repository and Chromium installed):
 
 ```bash
 E2E_BASE_URL=https://<project-name>.pages.dev E2E_CLOUDFLARE=1 npx playwright test deployment

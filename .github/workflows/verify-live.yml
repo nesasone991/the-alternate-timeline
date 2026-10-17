@@ -1,0 +1,74 @@
+name: Verify live site
+
+# Runs the deployment tests (tests/e2e/deployment.spec.ts) against a deployed
+# address, desktop and mobile: every route opened directly and reloaded, saves
+# across reloads, the ending page, beta labels, noindex (meta, header,
+# robots.txt), security headers, no console errors and no requests to other
+# hosts. Read-only: it changes nothing on the site. Started by hand:
+#   gh workflow run verify-live.yml -f url=https://<project>.pages.dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Deployed address, e.g. https://alternate-timeline-beta.pages.dev'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_URL: ${{ inputs.url }}
+    steps:
+      - name: Check the address
+        run: |
+          if ! printf '%s' "$TARGET_URL" | grep -Eq '^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?/?$'; then
+            echo "::error title=Address::Expected https://<host> with no path, got '$TARGET_URL'"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Response headers and robots.txt
+        run: |
+          BASE="${TARGET_URL%/}"
+          for path in / /campaigns/fall-of-rome/ending /no/such/page; do
+            echo "== $path"
+            curl -sS -D - -o /dev/null "$BASE$path" | tr -d '\r' | grep -iE '^(HTTP/|content-type|content-security-policy|x-robots-tag|x-frame-options|x-content-type-options|referrer-policy|cache-control)'
+          done
+          echo "== /robots.txt"
+          curl -sS "$BASE/robots.txt"
+          {
+            echo "status=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/campaigns/fall-of-rome/ending")"
+            echo "robots=$(curl -sS -D - -o /dev/null "$BASE/" | tr -d '\r' | grep -i '^x-robots-tag' | cut -d' ' -f2-)"
+            echo "label=$(curl -sS "$BASE/" | grep -o '<meta name="robots"[^>]*>' || true)"
+            JS=$(curl -sS "$BASE/" | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+            echo "build=$(curl -sS "$BASE$JS" | grep -oE 'VITE_BUILD_COMMIT"?:"[0-9a-f]{7}"' | head -1)"
+          } > live-summary.txt
+          echo "::notice title=Live site::$(tr '\n' ' ' < live-summary.txt)"
+
+      - name: Deployment tests against the live site (desktop and mobile)
+        env:
+          E2E_BASE_URL: ${{ inputs.url }}
+          E2E_CLOUDFLARE: '1'
+          PW_RESULTS: playwright-live.json
+          CI: 'true'
+        run: npx playwright test deployment
+
+      - name: Report results
+        if: ${{ !cancelled() }}
+        run: node .github/scripts/report-playwright.cjs playwright-live.json "Live site"

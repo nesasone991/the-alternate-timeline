@@ -3,7 +3,7 @@
 **Last updated:** 17 Oct 2026, end of session 8 (private beta release preparation).
 **Read this first in every new session**, then `docs/ARCHITECTURE.md` and the Master Blueprint.
 
-Repository: `github.com/nesasone991/the-alternate-timeline` (private). CI runs on every push to `main`: install, typecheck, lint, Vitest, build, deployment check, Playwright (desktop + mobile against the production build), then the deployment tests against Cloudflare's local Pages emulator.
+Repository: `github.com/nesasone991/the-alternate-timeline`. **Found public on 17 Oct 2026** (earlier notes wrongly said private); the owner chose to make it private, which has to be done in GitHub's settings because this workspace cannot change repository settings. CI runs on every push to `main`: install, typecheck, lint, Vitest, build, deployment check, Playwright (desktop + mobile against the production build), then the deployment tests against Cloudflare's local Pages emulator.
 
 ## Where things stand
 
