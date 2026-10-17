@@ -31,6 +31,7 @@ Last updated: 17 Oct 2026, session 8 (private beta release preparation).
 | 39033531083 | `f9bf7e1` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 172/172 | ✅ | ✅ 46/46 | End of session 7 |
 | 39035664211 | `5418aba` | ✅ `npm ci` | ❌ | ✅ | ✅ 192/192 | ✅ + deployment check ✅ | ✅ 74/74 (2 skipped) + emulator ✅ 30/30 | Session 8, first run. Typecheck: `process` used in `deployment.spec.ts`, which the app tsconfig checks without Node types (the sandbox typecheck had Node types, so missed it). Every other step passed |
 | **39035842952** | `d797e2e` | ✅ `npm ci` | ✅ | ✅ | ✅ **192/192** | ✅ + deployment check ✅ | ✅ **74/74** (2 skipped) + emulator ✅ **30/30** | **Session 8 milestone (private beta preparation). Fix: the Cloudflare flag comes from Playwright config metadata** |
+| 39036075719 | `12394ff` (docs; Wrangler pinned to 4.151.1) | ✅ `npm ci` | ✅ | ✅ | ✅ 192/192 | ✅ + deployment check ✅ | ✅ 74/74 (2 skipped) + emulator ✅ 30/30 | End of session 8 |
 
 Vitest breakdown (run 39035842952): `components/app.test.tsx` 17/17 · `unit/analytics.test.ts` 6/6 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 35/35 · `unit/playback.test.ts` 11/11 · `unit/release.test.ts` 7/7 · `unit/rome-campaign.test.ts` 57/57 · `unit/savegame.test.ts` 18/18 · `unit/settings.test.ts` 9/9 · `unit/story-events.test.ts` 11/11.
 
