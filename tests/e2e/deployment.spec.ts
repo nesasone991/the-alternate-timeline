@@ -10,7 +10,6 @@ import { SAVE_KEY, decide, openAlternateWorkspace } from './helpers';
  * another server; with E2E_CLOUDFLARE=1 (CI: `wrangler pages dev dist`, the
  * Cloudflare Pages emulator) it also checks the headers from dist/_headers.
  */
-const CLOUDFLARE = Boolean(process.env.E2E_CLOUDFLARE);
 
 const ROUTES = [
   { path: '/', title: 'The Alternate Timeline', h1: 'The Alternate Timeline' },
@@ -118,7 +117,8 @@ test('a whole campaign talks to no other host and logs no errors', async ({ page
 });
 
 test('Cloudflare Pages headers: security, no indexing, long cache for hashed assets', async ({ page, request }) => {
-  test.skip(!CLOUDFLARE, 'Only meaningful against the Cloudflare Pages emulator or a real Pages deployment.');
+  // Set from E2E_CLOUDFLARE in playwright.config.ts (kept out of this file, which the app's tsconfig checks without Node types).
+  test.skip(!test.info().config.metadata.cloudflare, 'Only meaningful against the Cloudflare Pages emulator or a real Pages deployment.');
   for (const path of ['/', '/campaigns/fall-of-rome/ending', '/privacy']) {
     const response = await request.get(path);
     expect(response.status()).toBe(200);

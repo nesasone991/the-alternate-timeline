@@ -12,6 +12,8 @@ const EXTERNAL = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  // E2E_CLOUDFLARE=1 enables the response-header checks in deployment.spec.ts.
+  metadata: { cloudflare: Boolean(process.env.E2E_CLOUDFLARE) },
   forbidOnly: CI,
   retries: 0,
   workers: CI ? 2 : undefined,
