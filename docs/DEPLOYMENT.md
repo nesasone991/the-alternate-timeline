@@ -89,7 +89,7 @@ npm ci
 npm run build             # typecheck + build (beta by default)
 npm run check:dist        # Pages routing rules, headers, robots, secrets, size budget
 npm run preview           # http://localhost:4173 (Vite's preview does not apply _headers)
-npx --yes wrangler@4 pages dev dist --port 8788   # Cloudflare's Pages emulator, applies _headers
+npx --yes wrangler@4.151.1 pages dev dist --port 8788   # Cloudflare's Pages emulator, applies _headers
 ```
 
 `wrangler pages dev` runs locally and needs no Cloudflare login. Run the deployment tests against it with `E2E_BASE_URL=http://localhost:8788 E2E_CLOUDFLARE=1 npx playwright test deployment`.

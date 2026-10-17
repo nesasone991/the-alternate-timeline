@@ -1,6 +1,6 @@
 # QA checklist
 
-Last updated: 17 Oct 2026, session 7 (Phase 2, milestone 6 — the ending experience).
+Last updated: 17 Oct 2026, session 8 (private beta release preparation).
 
 ## What ran where
 
@@ -8,6 +8,7 @@ Last updated: 17 Oct 2026, session 7 (Phase 2, milestone 6 — the ending experi
 | --- | --- |
 | **CI** | Executed in GitHub Actions on the real dependency tree (Node 22.23.3, npm 10.9.9, React 19.3.1, React Router 7.18.4, Vite 7.3.7, Vitest 3.2.7, TypeScript 5.8.3, ESLint 9.39.5, jsdom 26.1.0, Playwright 1.64.1). Playwright runs against the **production build** served by `vite preview`. |
 | **Sandbox** | Executed in the development sandbox, which has no npm access: an esbuild build with a React Router stand-in, unit tests through a Vitest stand-in, Playwright 1.56 against that build. Used to iterate before pushing; not a substitute for CI. |
+| **Emulator** | Executed in GitHub Actions against `wrangler pages dev dist` (Cloudflare's local Pages emulator, Wrangler 4.151.1): SPA routing, `_headers` and `robots.txt` as Pages applies them. Not the real Cloudflare service. |
 | **Inspection** | Read or computed; not executed. |
 
 ## CI runs
@@ -27,10 +28,13 @@ Last updated: 17 Oct 2026, session 7 (Phase 2, milestone 6 — the ending experi
 | **38949456541** | `783239d` | ✅ `npm ci` | ✅ | ✅ | ✅ **167/167** | ✅ | ✅ **28/28** | **Session 6 milestone (Decision 5, endings, unpaid costs); passed on the first CI run** |
 | 38949912492 | `dc81001` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 167/167 | ✅ | ✅ 28/28 | End of session 6 |
 | **39033328144** | `f6722e7` | ✅ `npm ci` | ✅ | ✅ | ✅ **172/172** | ✅ | ✅ **46/46** | **Session 7 milestone (ending experience); passed on the first CI run** |
+| 39033531083 | `f9bf7e1` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 172/172 | ✅ | ✅ 46/46 | End of session 7 |
+| 39035664211 | `5418aba` | ✅ `npm ci` | ❌ | ✅ | ✅ 192/192 | ✅ + deployment check ✅ | ✅ 74/74 (2 skipped) + emulator ✅ 30/30 | Session 8, first run. Typecheck: `process` used in `deployment.spec.ts`, which the app tsconfig checks without Node types (the sandbox typecheck had Node types, so missed it). Every other step passed |
+| **39035842952** | `d797e2e` | ✅ `npm ci` | ✅ | ✅ | ✅ **192/192** | ✅ + deployment check ✅ | ✅ **74/74** (2 skipped) + emulator ✅ **30/30** | **Session 8 milestone (private beta preparation). Fix: the Cloudflare flag comes from Playwright config metadata** |
 
-Vitest breakdown (run 39033328144): `components/app.test.tsx` 11/11 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 35/35 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 57/57 · `unit/savegame.test.ts` 18/18 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 11/11.
+Vitest breakdown (run 39035842952): `components/app.test.tsx` 17/17 · `unit/analytics.test.ts` 6/6 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 35/35 · `unit/playback.test.ts` 11/11 · `unit/release.test.ts` 7/7 · `unit/rome-campaign.test.ts` 57/57 · `unit/savegame.test.ts` 18/18 · `unit/settings.test.ts` 9/9 · `unit/story-events.test.ts` 11/11.
 
-Playwright (run 39033328144), each in **desktop** (1440×900) and **mobile** (Pixel 7):
+Playwright (run 39035842952), each in **desktop** (1440×900) and **mobile** (Pixel 7), against `vite preview`. The header check is skipped there (Vite's preview server does not apply `_headers`) and runs on the emulator:
 
 | Spec | Desktop | Mobile |
 | --- | --- | --- |
@@ -58,8 +62,33 @@ Playwright (run 39033328144), each in **desktop** (1440×900) and **mobile** (Pi
 | Keyboard: the history slider moves with Home/arrow keys and the readout follows; the restart dialog opens with Enter and closes with Escape | ✅ | ✅ |
 | Reduced motion: `data-motion="reduced"` and no running animations on the ending page | ✅ | ✅ |
 | Keyboard only: arrow keys select, Enter confirms | ✅ | ✅ |
+| **Deployment:** each of 11 routes (all pages, workspace in both modes, ending, two unknown paths) opened directly and reloaded: HTTP 200 HTML, the right `h1` and page title, no console errors, no request to another host | ✅ | ✅ |
+| **Deployment:** a save made on a nested route survives reload and a direct visit to the ending route; *Continue your campaign* returns to it unchanged | ✅ | ✅ |
+| **Deployment:** beta bar and footer label; `robots` meta `noindex, nofollow`; description and Open Graph tags; `/robots.txt` disallows all | ✅ | ✅ |
+| **Deployment:** a full campaign from the home page to the ending page and a reload makes no request to any other host and logs no error (on the emulator run the CSP is applied, so this also means no CSP violations) | ✅ | ✅ |
+| **Deployment:** response headers on `/`, the ending route and `/privacy` (CSP, `nosniff`, `DENY`, `X-Robots-Tag: noindex`) and immutable caching on the hashed entry script | skipped | skipped |
 
-Build (CI, disk size): main JS 400 kB, workspace chunk 20 kB and decision panel 20 kB (lazy, shared), ending chunk 40 kB (lazy), CSS 40 kB.
+Cloudflare Pages emulator (same run, Wrangler 4.151.1): the deployment spec above, all 15 tests in both projects, **30/30 passed**, including the header check.
+
+Build (CI, disk size): main JS 404 kB (123 kB gzipped, budget 160 kB), workspace chunk 20 kB and decision panel 20 kB (lazy, shared), ending chunk 40 kB (lazy), CSS 40 kB; 9 files in `dist/`.
+
+Deployment check (CI, `scripts/check-dist.mjs`): passed: no `404.html` or SPA rewrite, hashed entry present, robots meta, `_headers` and `robots.txt` match the beta channel, no source maps, `.env` files or secret-like strings, sizes within Pages limits, build label commit `d797e2e` present in the JavaScript.
+
+## Private beta checks (session 8)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Release config: beta default; invalid channel, non-GoatCounter endpoint and non-https feedback link rejected; production indexable, beta not (header, meta, robots.txt); CSP admits the analytics origin only when configured; no `unsafe-eval`; header lines within Pages limits | ✅ | CI (unit, `release.test.ts`) |
+| `APP_VERSION` equals `package.json` version; test build is beta with analytics off | ✅ | CI (unit) |
+| Analytics status: active only with endpoint + Settings consent + no DNT/GPC + not automated; exact request format (`p`, `t`, `e`, `rnd` only); blocked states send nothing; never throws; one event per ending category | ✅ | CI (unit, `analytics.test.ts`) |
+| In the app: start, D1, D3, completion and ending category counted in order on a full campaign; Start over counts a new timeline and a new start; a restored save is not a start; ending page counts replay and new timeline; no choice or resource name in any request; nothing sent without an endpoint | ✅ | CI (component) |
+| Beta bar and build label on every page; privacy page lists the ten counted moments and says nothing is sent in this build; no opt-out checkbox when nothing can be sent | ✅ | CI (component) |
+| Build with `VITE_ANALYTICS_ENDPOINT` and `VITE_FEEDBACK_URL` set: deployment check passes, CSP gains only `https://tat-beta.goatcounter.com`, privacy page shows the opt-out and (automated browser) "nothing is sent", feedback links appear in the beta bar and on the ending page | ✅ | Sandbox build, screenshots at 360 px |
+| `usageCounts` setting defaults on, can be turned off, invalid values fall back | ✅ | CI (unit) |
+| Visual review of the beta bar, footer label and privacy page at 360 and 1440 px | ✅ | Sandbox screenshots; shortened the beta bar text and styled the policy links after review |
+| Outdated-build recovery message | ⬜ Not executed | Inspection only: the message matching follows Chromium, Firefox and Safari wording; check on the live site after a second deploy |
+| GoatCounter receives and shows events | ⬜ Not executed | Needs an owner account; request format follows GoatCounter's documented `/count` API |
+
 
 ## Milestone 6 checks (ending experience)
 
@@ -163,16 +192,21 @@ Build (CI, disk size): main JS 400 kB, workspace chunk 20 kB and decision panel 
 | Screen readers (NVDA, VoiceOver) | ⬜ |
 | Safari and Firefox (Playwright runs Chromium only) | ⬜ |
 | Real phones | ⬜ Pixel 7 emulation only |
-| Live deployment | ⬜ Not deployed |
+| Live deployment on Cloudflare Pages | ⬜ Not deployed (prepared; needs owner authorisation). Checklist: `docs/DEPLOYMENT.md` |
+| GoatCounter event delivery | ⬜ No account configured |
+| Outdated-build recovery after a redeploy | ⬜ |
+| External source links still resolve | ⬜ Not checked automatically |
 
 ## Verify locally
 
 ```bash
 git pull
 npm ci
-npm run check                     # typecheck + lint + unit/component tests + build
+npm run check                     # typecheck + lint + unit/component tests + build + deployment check
 npx playwright install chromium   # once
-npm run test:e2e                  # end-to-end, desktop and mobile
+npm run test:e2e                  # end-to-end, desktop and mobile (header check skipped on vite preview)
+npx --yes wrangler@4.151.1 pages dev dist --port 8788 &                       # Cloudflare's local Pages emulator
+E2E_BASE_URL=http://localhost:8788 E2E_CLOUDFLARE=1 npx playwright test deployment
 npm run dev                       # http://localhost:5173/campaigns/fall-of-rome/workspace?mode=alternate
 ```
 

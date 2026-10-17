@@ -103,7 +103,7 @@ jobs:
           E2E_CLOUDFLARE: '1'
           PW_RESULTS: playwright-cloudflare.json
         run: |
-          npx --yes wrangler@4 pages dev dist --port 8788 > wrangler.log 2>&1 &
+          npx --yes wrangler@4.151.1 pages dev dist --port 8788 > wrangler.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:8788/ > /dev/null && break; sleep 1; done
           curl -sI http://localhost:8788/campaigns/fall-of-rome/ending | tr -d '\r' | sed 's/^/  /'
           npx playwright test deployment
@@ -113,7 +113,7 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           node .github/scripts/report-playwright.cjs playwright-cloudflare.json "Cloudflare emulator"
-          echo "::notice title=Wrangler::$(npx --yes wrangler@4 --version 2>/dev/null | tail -1)"
+          echo "::notice title=Wrangler::$(npx --yes wrangler@4.151.1 --version 2>/dev/null | tail -1)"
           tail -n 20 wrangler.log || true
 
       - name: Commit generated or updated lockfile

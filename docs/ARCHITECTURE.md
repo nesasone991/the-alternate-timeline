@@ -222,4 +222,4 @@ Creator Mode should grow into a reusable studio for animated historical maps, ca
 | Tailwind arbitrary values (`text-[clamp(...)]`) are verbose | Acceptable for now; promote repeated ones to tokens if they spread. |
 | Dependency versions resolve at install time | Commit `package-lock.json` after the first `npm install`. |
 | Cloudflare changes Pages behaviour or limits | Only standard files (`_headers`, `robots.txt`) are used; the build is portable to any static host; the deployment check and emulator tests flag routing regressions. |
-| `wrangler@4` in CI resolves to a newer minor version | It is a test tool only; the emulator step reports its version. Pin an exact version if it starts to vary. |
+| The Pages emulator differs from the real service | Wrangler is pinned (4.151.1) and used only for tests; the live-site checklist in `DEPLOYMENT.md` covers the real host. Update the pin deliberately. |
