@@ -1,6 +1,6 @@
 # QA checklist
 
-Last updated: 16 Oct 2026, session 6 (Phase 2, milestone 5 — Decision 5 and ending rules).
+Last updated: 17 Oct 2026, session 7 (Phase 2, milestone 6 — the ending experience).
 
 ## What ran where
 
@@ -25,10 +25,12 @@ Last updated: 16 Oct 2026, session 6 (Phase 2, milestone 5 — Decision 5 and en
 | **38946100373** | `00029a0` | ✅ `npm ci` | ✅ | ✅ | ✅ **139/139** | ✅ | ✅ **24/24** | **Session 5 milestone (Decision 4); passed on the first CI run** |
 | 38946476398 | `f4831b1` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 139/139 | ✅ | ✅ 24/24 | End of session 5 |
 | **38949456541** | `783239d` | ✅ `npm ci` | ✅ | ✅ | ✅ **167/167** | ✅ | ✅ **28/28** | **Session 6 milestone (Decision 5, endings, unpaid costs); passed on the first CI run** |
+| 38949912492 | `dc81001` (docs only) | ✅ `npm ci` | ✅ | ✅ | ✅ 167/167 | ✅ | ✅ 28/28 | End of session 6 |
+| **39033328144** | `f6722e7` | ✅ `npm ci` | ✅ | ✅ | ✅ **172/172** | ✅ | ✅ **46/46** | **Session 7 milestone (ending experience); passed on the first CI run** |
 
-Vitest breakdown (run 38949456541): `components/app.test.tsx` 9/9 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 35/35 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 57/57 · `unit/savegame.test.ts` 18/18 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 8/8.
+Vitest breakdown (run 39033328144): `components/app.test.tsx` 11/11 · `unit/data.test.ts` 13/13 · `unit/dates.test.ts` 8/8 · `unit/engine.test.ts` 35/35 · `unit/playback.test.ts` 11/11 · `unit/rome-campaign.test.ts` 57/57 · `unit/savegame.test.ts` 18/18 · `unit/settings.test.ts` 8/8 · `unit/story-events.test.ts` 11/11.
 
-Playwright (run 38949456541), each in **desktop** (1440×900) and **mobile** (Pixel 7):
+Playwright (run 39033328144), each in **desktop** (1440×900) and **mobile** (Pixel 7):
 
 | Spec | Desktop | Mobile |
 | --- | --- | --- |
@@ -45,9 +47,43 @@ Playwright (run 38949456541), each in **desktop** (1440×900) and **mobile** (Pi
 | Changing your mind before confirming changes nothing | ✅ | ✅ |
 | Damaged save: reported, kept until discarded, page keeps working | ✅ | ✅ |
 | A real version 4 save is refused: "earlier version of this campaign (version 4; this is version 5)" plus the v5 change note | ✅ | ✅ |
+| From the workspace's ending, *See the fate of your empire* opens the ending page with the same result; Back returns to the workspace | ✅ | ✅ |
+| **Imperial Survival** ending page: headline, category, fiction label, introduction and why from the report; four final values and **every chart point equal to the engine replay**; table rows = history points; five decisions with the chosen strategies; report sections; threats; sourced 476 event; no sideways scroll | ✅ | ✅ |
+| **Fragmented Survival** ending page: the same checks | ✅ | ✅ |
+| **Imperial Collapse** ending page: the same checks | ✅ | ✅ |
+| A Real History link from the ending opens the workspace at the sourced event (476, Odoacer) | ✅ | ✅ |
+| Replay steps through every event (count from the replay), ends on the ending, returns focus to its button; the saved game is byte-identical before and after, and after a reload | ✅ | ✅ |
+| Start a new timeline: Escape and *Keep this timeline* change nothing; *Erase it and start again* clears the save and opens Decision 1; after a reload nothing is restored and the ending page says there is no finished campaign | ✅ | ✅ |
+| 360 / 768 / 1440 px: no sideways scroll; every button, summary, nav link, Real History link and slider at least 44 px; one `h1` and the five section `h2`s in order; chart summaries for screen readers | ✅ | ✅ |
+| Keyboard: the history slider moves with Home/arrow keys and the readout follows; the restart dialog opens with Enter and closes with Escape | ✅ | ✅ |
+| Reduced motion: `data-motion="reduced"` and no running animations on the ending page | ✅ | ✅ |
 | Keyboard only: arrow keys select, Enter confirms | ✅ | ✅ |
 
-Build (CI, disk size): main JS 396 kB, workspace chunk 36 kB (lazy), CSS 36 kB.
+Build (CI, disk size): main JS 400 kB, workspace chunk 20 kB and decision panel 20 kB (lazy, shared), ending chunk 40 kB (lazy), CSS 40 kB.
+
+## Milestone 6 checks (ending experience)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Resource history (`resourceTimeline`) starts at the authored values, ends at the replayed final state, and just before each decision equals `replay(prefix)`, for all 145 paths; deterministic | ✅ | CI (unit) |
+| Lapsed consequences appear with no change; unpaid-cost transfers are included | ✅ | CI (unit) |
+| Ending page renders from a save; replay and restart behave (component, jsdom); explains missing and unfinished campaigns | ✅ | CI (component) |
+| All three endings in the browser, with chart values compared to the engine replay | ✅ | CI (Playwright, desktop + mobile) |
+| No simulation rule or classification changed (all 243-combination checks unchanged and passing) | ✅ | CI (unit) |
+| Visual review of hero, seal, charts, decisions and world sections at 1440, 768 and 360 px for all three endings | ✅ | Sandbox screenshots; fixed: seal numeral overflow, a badge that caused 22 px sideways scroll at 360 px, a cluttered hero (now resource measures only), a too-regular collapse seal |
+
+### Contrast (WCAG 2.1, computed)
+
+| Pair | Ratio | Needs |
+| --- | --- | --- |
+| Parchment text on ink | 13.48 | 4.5 |
+| Muted text on ink / night | 8.25 / 7.31 | 4.5 |
+| Gold text on ink | 7.90 | 4.5 |
+| Burgundy-bright text on ink / on the fiction panel | 6.96 / 6.63 | 4.5 |
+| Teal-bright text on ink / on the history panel | 9.24 / 8.55 | 4.5 |
+| Parchment / muted text on the strongest hero wash (collapse) | 10.16 / 6.22 | 4.5 |
+| Bronze seal and rules (graphics) on ink | 4.08 | 3.0 |
+| Gold chart line (graphics) on ink | 7.90 | 3.0 |
 
 ## Milestone 5 checks (Decision 5, endings, unpaid costs)
 
@@ -141,6 +177,8 @@ npm run dev                       # http://localhost:5173/campaigns/fall-of-rome
 ```
 
 By hand: choose **Pay the armies first** → Decision 2 opens showing why, the 459 consequence (Economy 28 → 25) and the field army locked. Choose **Concentrate the armies in Italy** → Decision 3 (c. 468) opens with "Order of events in c. 468" and the provinces-drift consequence already applied (Political Unity 27 → 21); Economy 25, Military 67, Legitimacy 39. Choose **Join the eastern expedition against Carthage** → Decision 4 (c. 472) opens with the expedition's debts already applied: Economy 13, Military 61, Political Unity 21, Legitimacy 45, and the Decision 3 report. Choose **Restore the emperor's authority** → Decision 5 (c. 475) opens with the 475 bonus already applied: Economy 22, Military 57, Political Unity 14, Legitimacy 56. Choose **Defend the imperial office by force** → the settlement of 476 lists what happened in 476, and the result is **Imperial Collapse** (13/47/9/70) with the reason. Refresh: the same state comes back. **Start over**: everything resets.
+
+Then **See the fate of your empire** opens the ending page: check the seal, the charts (move the slider with the keyboard), the five decisions, the report, *What really happened* (follow a Real History link), *Replay your decisions*, and *Start a new timeline* (cancel first, then confirm).
 
 Other endings: **Pay the armies first → Concentrate in Italy → Treaty with Gaiseric → Bargain → Defend** gives Imperial Survival; **Reform taxation → Settle federates → Give up Africa → Bargain → Hand government to successors** gives Fragmented Survival.
 

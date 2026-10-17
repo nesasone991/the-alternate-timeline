@@ -51,7 +51,8 @@ src/config      Brand constants and (empty until supplied) channel links
 | `/about` | Principles, limitations, all sources |
 | `/privacy` | What is stored and what is not |
 | `/campaigns/:campaignId` | Overview (or "not available yet" for coming-soon campaigns) |
-| `/campaigns/:campaignId/workspace?mode=real\|alternate\|comparison` | Workspace, lazy-loaded chunk |
+| `/campaigns/:campaignId/workspace?mode=real\|alternate\|comparison` | Workspace, lazy-loaded chunk. `?event=<id>` opens Real History at that event (used by links from the ending) |
+| `/campaigns/:campaignId/ending` | The ending experience of a finished campaign, lazy-loaded chunk |
 | `*` | Not found |
 
 Settings is a modal dialog available from every page, not a route.
@@ -118,7 +119,7 @@ Each `StructuralConsequence` (resource, unpaid amount, explanation, the applied 
 
 Rome's rules (scenario v5): **Imperial Survival** — office not handed over, Legitimacy ≥ 35, Military ≥ 40, Unity ≥ 25, Economy ≥ 5, no collapse of authority, no default, no looming threat. **Fragmented Survival** — Unity ≥ 25 and Legitimacy ≥ 15, or the office handed to successors with Unity ≥ 25; at most one looming threat. **Imperial Collapse** — otherwise.
 
-`buildEndingReport(scenario, state)` returns a structured, data-only `EndingReport` with `fiction: true`: ending and category, the rule's explanation and conditions, one authored line each for the final settlement, imperial authority, the army, the economy, the regional powers and Constantinople (first matching `EndingLine`, by ending and conditions), the three most important decisions (ranked by how much each — directly, through unpaid costs and through its later consequences — moved the resources the deciding rule looked at; ties go to the earlier decision), the looming threats and the unpaid costs. The ending screen is a later milestone; the workspace shows only the ending, its summary and why.
+`buildEndingReport(scenario, state)` returns a structured, data-only `EndingReport` with `fiction: true`: ending and category, the rule's explanation and conditions, one authored line each for the final settlement, imperial authority, the army, the economy, the regional powers and Constantinople (first matching `EndingLine`, by ending and conditions), the three most important decisions (ranked by how much each — directly, through unpaid costs and through its later consequences — moved the resources the deciding rule looked at; ties go to the earlier decision), the looming threats and the unpaid costs. The workspace shows the ending, its summary and why, with a link to the ending experience (below).
 
 ### Narrative reports
 
@@ -139,6 +140,28 @@ The resolved text is stored on the `ChoiceRecord`, shown in a "Report to the cou
 Data separation: `alternate.ts` refers to actual history only by event id (for "set against these sourced events" links). It never imports the actual-history dataset. Both datasets are deep-frozen.
 
 UI: `useSimulation` wraps the engine with a pre-commit selection (change your mind until you confirm; after that, Start over). State lives in the workspace component, so it survives switching tabs, and is autosaved after each decision (above).
+
+## Ending experience (`src/features/ending`, `pages/EndingPage.tsx`)
+
+**Data flow — one source of truth.** `EndingPage` reads the saved game (`loadSave`); the save is only a list of choices. If storage is blocked, it accepts the choices the workspace passes in router state, but only if they replay to an ending. `EndingExperience` then derives everything from those choices with the engine, once, in a `useMemo`:
+
+| Data | From | Used by |
+| --- | --- | --- |
+| Final state, records, resolved and pending consequences | `replayWithEvents` | Decision review, world report, hero |
+| Ordered story events | `replayWithEvents` | Replay |
+| Resource history | `resourceTimeline` (storyEvents.ts) | Charts, slider, table, replay |
+| Ending report | `buildEndingReport` | Hero, world report, comparison |
+| Rule trace (met and unmet conditions) | `classifyEnding` | Hero "why", "How the ending was decided" |
+
+`resourceTimeline` does **not** recalculate anything: each point copies the `after` values the engine recorded on an event's applied effects and structural transfers, and it throws if its last point differs from the replayed final state. Unit tests check every path: the point just before each decision equals `replay(prefix).resources`. The Playwright tests compare every chart marker with the same replay.
+
+**Sections:** the fate of your empire (category seal, atmosphere line, headline, introduction = category framing + report settlement, why = rule explanation + the measures that held, or for collapse the measures a better ending needed) · your empire in 476 (final tiles; four small-multiple line charts, one per resource, single gold series, filled markers for decisions and hollow for consequences, a shared range slider that drives a live readout, and a table view) · the decisions that changed history (all five, from the records) · the world you created (report sections, key decisions, threats and unpaid costs, rule trace in a disclosure) · what really happened (fiction panel beside the sourced events dated 474–480 from the actual timeline, with sources, certainty, caveats and Real History links) · replay and restart.
+
+**Category identity** (`endingThemes.ts`, `EndingSeal.tsx`) is presentation only: atmosphere line, framing sentence, accent and wash colours, and an SVG seal — an unbroken laurel ring (survival), five separated arcs (fragmented) or arcs pushed apart (collapse) — around the year in Roman numerals. Campaign-specific narrative always comes from the report.
+
+**Replay** steps through `StoryEvent`s with Previous/Next and focus management; it holds only a local index and never writes the save. **Start a new timeline** opens a native `<dialog>` (focus on "Keep this timeline", Escape cancels); only "Erase it and start again" calls `clearSave` and opens the workspace at Decision 1.
+
+**Motion:** the seal and chart lines draw once via `.seal-draw`/`.chart-draw`, enabled only under `html[data-motion='full']`; under reduced motion everything is static. **Accessibility:** one `h1`, five `h2` sections with an on-page nav, charts as `role="img"` with plain-language summaries plus a table, the slider with `aria-valuetext`, a live readout, text labels on every badge (fiction/sourced, took effect/did not happen, ✓/✕ with screen-reader text), 44 px targets.
 
 ## Historical Animation Studio (future Creator Mode) — constraints kept now
 

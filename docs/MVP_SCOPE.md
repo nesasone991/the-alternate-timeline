@@ -7,10 +7,10 @@ Labels: **Must** (MVP blocker), **Should** (MVP if time allows), **Later** (afte
 | 1 | Responsive landing, accessible navigation, campaign catalog with one playable and labelled coming-soon campaigns | Must | 1 | ✅ |
 | 2 | Real History timeline with sourced, dated events | Must | 1 | 🟡 Nineteen sourced events (410–480); text awaits independent review; tertiary sources to be corroborated |
 | 3 | Historical map: zoom/pan, legend, tooltips, time control, ≥3 validated snapshots | Must | 3 | ⬜ Placeholder only; time control exists |
-| 4 | Branching Rome campaign: 5 decisions, ≥3 endings | Must | 2 | 🟡 All five decisions playable, with delayed consequences, structural consequences for unpaid costs, reports to the council, three endings classified by rules and a structured ending report; the ending screen is not built yet |
+| 4 | Branching Rome campaign: 5 decisions, ≥3 endings | Must | 2 | 🟡 All five decisions playable, with delayed consequences, structural consequences for unpaid costs, reports to the council, three endings classified by rules, and a full ending experience for each |
 | 5 | Deterministic rules engine, seeded, visible consequences | Must | 2 | 🟡 Engine, validator and path matrix done and tested; no randomness used |
 | 6 | Historical vs alternate comparison at the same date | Must | 4 | ⬜ Mode tab present and labelled "not built" |
-| 7 | Local save/load, reset, shareable outcome card | Must | 2 (save) / 4 (card) | 🟡 Versioned autosave, restore, reset and damaged-save recovery done; share card not started |
+| 7 | Local save/load, reset, shareable outcome card | Must | 2 (save) / 4 (card) | 🟡 Versioned autosave, restore, reset (with confirmation from the ending) and damaged-save recovery done; read-only replay of a finished campaign; share card not started |
 | 8 | Creator Mode: clean playback, 9:16/16:9 guides, speed, seek, bookmarks | Must | 5 | ⬜ Frame and speed types exist; playback reducer reusable |
 | 9 | Mobile-responsive, keyboard-accessible core flow; low-power fallback | Must | 1 → ongoing | 🟡 Done for Phase 1 screens |
 | 10 | Tests, build checks, attribution, error states, privacy note, deployment guide | Must | 1 → ongoing | 🟡 Present for Phase 1 scope |
@@ -19,7 +19,7 @@ Labels: **Must** (MVP blocker), **Should** (MVP if time allows), **Later** (afte
 | — | Export/import save file | Should | 2 | ⬜ (save format is ready for it) |
 | — | Swipe overlay in comparison | Should | 4 | ⬜ |
 | — | Self-hosted OFL display font | Should | polish | ⬜ |
-| — | Playwright E2E suite in repo | Should | 2 | ✅ 14 specs × desktop + mobile, in CI against the production build |
+| — | Playwright E2E suite in repo | Should | 2 | ✅ 23 specs × desktop + mobile (including each ending, replay, restart, widths, keyboard, reduced motion), in CI against the production build |
 | — | CI on every push (GitHub Actions) | Should | 2 | ✅ |
 | — | Napoleon 1815, Viking Age 865 campaigns | Later | — | Concept cards only |
 | — | Accounts, cloud saves, payments, ads, analytics, AI-generated content, MP4 export, 3D globe | Later / not MVP | — | Excluded by Blueprint §2.2 |

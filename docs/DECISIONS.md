@@ -55,4 +55,10 @@
 | D51 | 2026-10-16 | Defending the office needs Military 40 and is ruled out when the commander rules; sharing power has no prerequisite | The draft also required Legitimacy 10 for sharing power, which left nine states with a single option; with it removed every state reaching D5 has at least two | — |
 | D52 | 2026-10-16 | The workspace shows only the ending, its summary and why; the full report is data only | Brief: do not implement the ending screen yet | Ending screen milestone |
 | D53 | 2026-10-16 | Scenario version 5, state schema 4; v4 saves refused | Settlement and unpaid-cost rules change earlier numbers (e.g. the empty-treasury bargain now gives Economy 4, not 10), and D4 now leads to D5 | Next content change |
+| D54 | 2026-10-17 | The ending is its own route, reading the save; the workspace links to it | A full-page, shareable-later view without overloading the workspace; the save is the source of truth, and router state is only a fallback when storage is blocked | — |
+| D55 | 2026-10-17 | Resource history copied from recorded `after` values (`resourceTimeline`), guarded against the replayed state | Brief: replay data is the source of truth; the UI must not recalculate | — |
+| D56 | 2026-10-17 | Four small multiples, one series each, with one shared slider, rather than one chart with four lines | Lines converge around 30–60 and would need a legend and colour coding; small multiples need neither, and the slider gives keyboard access to every moment | User feedback |
+| D57 | 2026-10-17 | Category identity through one SVG seal and a background wash; teal is not used for any ending | Teal means sourced history in this design system; endings are fiction | — |
+| D58 | 2026-10-17 | "What really happened" lists actual-timeline events dated 474–480 by filter, not by a hand-picked list | Only sourced events appear, and adding a sourced event later includes it automatically | Comparison mode |
+| D59 | 2026-10-17 | No simulation rule or classification changed in this milestone | No defect was found while building on the replay data | — |
 

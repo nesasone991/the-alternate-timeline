@@ -11,6 +11,10 @@ Creator Mode (clean playback, 9:16 / 16:9 safe frames, bookmarks) is **not built
 5. Click the **Alternate History** tab to show that it is clearly marked as not built.
 6. Open **Settings** and switch year notation between AD and CE.
 
+## Ending footage (available now)
+
+A finished campaign has a full ending page (*See the fate of your empire* from the workspace, or `/campaigns/fall-of-rome/ending`). Useful shots: the seal drawing in (motion on), the resource charts with the slider moving through the campaign, and *What really happened*, where fiction and sourced history sit side by side. Everything above *What really happened* is **fictional alternate history** and must be captioned so; the right-hand column of that section is **sourced history**. To film each ending, play these choices: Imperial Survival — Pay the armies first, Concentrate in Italy, Treaty with Gaiseric, Bargain with the regional powers, Defend the imperial office. Fragmented Survival — Reform taxation, Settle federates, Give up Africa, Bargain, Hand government to successors. Imperial Collapse — Reform taxation, Concentrate in Italy, Treaty with Gaiseric, Restore the emperor's authority, Defend the imperial office.
+
 ## Recording now (Phase 1)
 
 1. Use OBS Studio (free) with a *Window Capture* of the browser, or the browser's own screen recorder.

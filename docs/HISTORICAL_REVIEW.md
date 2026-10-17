@@ -94,6 +94,10 @@ New and revised events, each checked against its listed sources on 16 Oct 2026:
 3. The ending report's sections on the army, economy, regions and Constantinople are authored fiction chosen by rules; none cites a source.
 4. The unpaid-cost rules ("the court seized goods and labour from the provinces", "towns and landowners had to raise their own defence") are plausible in kind for the period but are not presented as documented events.
 
+## Ending experience: "What really happened" (added 17 Oct 2026, session 7)
+
+The comparison section shows only events from the actual-history dataset dated 474–480 (currently seven), each with its sources, certainty badge and caveat exactly as in Real History, plus the existing Eastern-continuity note. It adds no historical claim of its own. The fictional side shows the ending title, the report's settlement line and its Constantinople line, labelled as invented. Reviewer point: confirm the visual distinction (dashed burgundy "Fictional alternate history" panel vs solid teal "Sourced history" panel) is unmistakable on all screens.
+
 ## Recommended scholarly references to consult (not yet cited)
 
 These are standard works. They have **not** been read for this project yet and are therefore not cited in the app.
