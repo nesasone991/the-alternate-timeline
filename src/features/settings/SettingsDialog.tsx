@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import type { MotionPreference, Settings, TextSize } from './settings';
+import { RELEASE } from '../../config/release';
 import { isPersistenceAvailable, resetSettings, updateSettings } from './settingsStore';
 import { useSettings, useSystemReducedMotion } from './useSettings';
 
@@ -88,6 +89,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             checked={settings.ambientAnimations}
             onChange={(checked) => updateSettings({ ambientAnimations: checked })}
           />
+
+          {RELEASE.analyticsEndpoint ? (
+            <ToggleRow
+              label="Anonymous usage counts"
+              hint="Counts such as “a campaign was started” or “an ending was reached”, with no personal data and none of your choices. See the privacy page. Do Not Track is always respected."
+              checked={settings.usageCounts}
+              onChange={(checked) => updateSettings({ usageCounts: checked })}
+            />
+          ) : null}
 
           <ToggleRow
             label="Sound effects"

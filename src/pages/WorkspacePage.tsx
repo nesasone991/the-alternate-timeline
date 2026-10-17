@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer } from 'react';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { CampaignStatusBadge } from '../components/ui/Badges';
 import { Icon } from '../components/ui/Icon';
@@ -19,6 +19,7 @@ import { MapPlaceholder } from '../features/workspace/MapPlaceholder';
 import { ModeTabs } from '../features/workspace/ModeTabs';
 import { campaignPath, getCampaign, isCampaignSelectable } from '../lib/catalog';
 import { formatYear } from '../lib/dates';
+import { trackEvent } from '../lib/analytics';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
 import type { CampaignSummary } from '../types/campaign';
 import type { WorkspaceMode } from '../types/simulation';
@@ -74,6 +75,37 @@ function Workspace({ campaign, content }: { campaign: CampaignSummary; content: 
   const simulation = useSimulation(scenario);
   const simState = simulation.ui?.state;
   const inAlternate = mode === 'alternate' && scenario !== undefined && simState !== undefined;
+
+  // Usage counts (anonymous; see src/lib/analytics.ts). A campaign "starts" when its
+  // first decision is shown with nothing decided yet: once per new game in this tab.
+  const startedAtRevision = useRef<number | null>(null);
+  const revision = simulation.ui?.revision;
+  const lastAction = simulation.ui?.lastAction;
+  const decided = simState?.records.length ?? 0;
+  useEffect(() => {
+    if (!inAlternate || decided !== 0 || revision === undefined || startedAtRevision.current === revision) return;
+    startedAtRevision.current = revision;
+    trackEvent('campaign-start');
+  }, [inAlternate, decided, revision]);
+  const trackedRevision = useRef(0);
+  useEffect(() => {
+    if (!scenario || !simState || revision === undefined || revision === trackedRevision.current) return;
+    trackedRevision.current = revision;
+    if (lastAction === 'restart') {
+      trackEvent('new-timeline-from-workspace');
+      return;
+    }
+    if (lastAction !== 'confirm') return;
+    if (decided === 1) trackEvent('decision-1-complete');
+    if (decided === 3) trackEvent('decision-3-complete');
+    const ending = scenario.endings?.find((item) => item.id === simState.endingId);
+    if (ending) {
+      trackEvent('campaign-complete');
+      trackEvent(`ending-${ending.category}`);
+    }
+    // Runs once per committed action: the revision changes exactly then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revision]);
 
   // Real History follows the playback cursor. Alternate History shows what really
   // happened by the alternate timeline's current year, for contrast.

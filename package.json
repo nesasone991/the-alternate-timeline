@@ -1,7 +1,7 @@
 {
   "name": "the-alternate-timeline",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.9.0-beta.1",
   "description": "The Alternate Timeline — an interactive historical experience by Tales of the Past.",
   "type": "module",
   "license": "UNLICENSED",
@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm run lint && npm run test && vite build",
+    "check": "npm run typecheck && npm run lint && npm run test && vite build && npm run check:dist",
+    "check:dist": "node scripts/check-dist.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

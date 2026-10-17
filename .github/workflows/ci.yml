@@ -73,6 +73,12 @@ jobs:
           npx vite build
           echo "::notice title=Build::$(cd dist && find . -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' \) -exec du -k {} + | sort -k2 | awk '{printf "%s %s kB; ", $2, $1}')"
 
+      - name: Deployment check (Cloudflare Pages rules, headers, robots, secrets, size budget)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          node scripts/check-dist.mjs | tee dist-check.txt
+          echo "::notice title=Deployment check::$(tr '\n' ' ' < dist-check.txt)"
+
       - name: Install Playwright browser
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npx playwright install --with-deps chromium
@@ -84,26 +90,31 @@ jobs:
 
       - name: Report end-to-end results
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node .github/scripts/report-playwright.cjs playwright-results.json Playwright
+
+      # The same deployment spec against Cloudflare's own local emulator of Pages
+      # (wrangler pages dev): SPA routing, _headers and robots.txt as Pages serves them.
+      # Runs locally on the runner; no Cloudflare account, token or deployment.
+      - name: Deployment tests on the Cloudflare Pages emulator
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+          E2E_BASE_URL: http://localhost:8788
+          E2E_CLOUDFLARE: '1'
+          PW_RESULTS: playwright-cloudflare.json
         run: |
-          node -e '
-            const fs = require("fs");
-            if (!fs.existsSync("playwright-results.json")) { console.log("::warning title=Playwright::No results file."); process.exit(0); }
-            const r = JSON.parse(fs.readFileSync("playwright-results.json", "utf8"));
-            const rows = [];
-            const walk = (suite, file) => {
-              for (const spec of suite.specs || []) for (const t of spec.tests) {
-                const status = t.results.map(x => x.status).pop();
-                rows.push(`${t.projectName}: ${spec.title} = ${status}`);
-              }
-              for (const child of suite.suites || []) walk(child, file);
-            };
-            for (const s of r.suites) walk(s, s.title);
-            const st = r.stats;
-            console.log(`::notice title=Playwright::${st.expected} passed, ${st.unexpected} failed, ${st.flaky} flaky, ${st.skipped} skipped`);
-            const failed = rows.filter(x => !x.endsWith("= passed"));
-            console.log(`::notice title=Playwright tests::` + rows.map(x => x.replace(/ = passed$/, " ✓")).join(" | ").slice(0, 3800));
-            if (failed.length) console.log(`::error title=Playwright failures::` + failed.join(" | "));
-          '
+          npx --yes wrangler@4 pages dev dist --port 8788 > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8788/ > /dev/null && break; sleep 1; done
+          curl -sI http://localhost:8788/campaigns/fall-of-rome/ending | tr -d '\r' | sed 's/^/  /'
+          npx playwright test deployment
+        timeout-minutes: 8
+
+      - name: Report emulator results
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          node .github/scripts/report-playwright.cjs playwright-cloudflare.json "Cloudflare emulator"
+          echo "::notice title=Wrangler::$(npx --yes wrangler@4 --version 2>/dev/null | tail -1)"
+          tail -n 20 wrangler.log || true
 
       - name: Commit generated or updated lockfile
         if: ${{ success() && (steps.install.outputs.lockfile == 'generated' || steps.install.outputs.lockfile == 'updated') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}

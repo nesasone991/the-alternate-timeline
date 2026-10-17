@@ -21,21 +21,21 @@ export const HOW_IT_WORKS_STEPS: readonly Step[] = [
     summary: 'Step in at a turning point and choose a different course.',
     detail:
       'Every option has a cost. Some require resources you may not have; some close doors that stay closed.',
-    status: 'Preview: the opening decisions of the Fall of Rome are playable.',
+    status: 'Available now: all five decisions of the Fall of Rome are playable.',
   },
   {
     title: 'Simulate the Consequences',
     summary: 'See how your choices ripple forward through the following decades.',
     detail:
       'Outcomes come from authored, deterministic rules — the same choices always produce the same result — so you can trace exactly why things turned out as they did.',
-    status: 'Preview: immediate effects and delayed consequences are calculated and explained.',
+    status: 'Available now: immediate effects, delayed consequences and three endings, each explained.',
   },
   {
     title: 'Compare Both Timelines',
     summary: 'Set your timeline beside the real one at the same date.',
     detail:
       'Fiction is always labelled as fiction, and every comparison links back to the sourced events it departs from.',
-    status: 'In development.',
+    status: 'Coming later. For now, each ending is set beside the sourced events of 474–480.',
   },
 ];
 

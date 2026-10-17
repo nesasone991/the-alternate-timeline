@@ -17,6 +17,11 @@ export type Settings = {
   readonly motion: MotionPreference;
   readonly textSize: TextSize;
   readonly eraNotation: EraNotation;
+  /**
+   * Whether this browser may send anonymous usage counts (see src/lib/analytics.ts).
+   * Has an effect only on builds with analytics configured.
+   */
+  readonly usageCounts: boolean;
 };
 
 export const SETTINGS_STORAGE_KEY = 'tat.settings';
@@ -29,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 'system',
   textSize: 'standard',
   eraNotation: 'AD',
+  usageCounts: true,
 };
 
 const MOTION_VALUES: readonly MotionPreference[] = ['system', 'reduced', 'full'];
@@ -69,6 +75,7 @@ export function parseSettings(raw: string | null | undefined): Settings {
     motion: pick(read('motion'), MOTION_VALUES, DEFAULT_SETTINGS.motion),
     textSize: pick(read('textSize'), TEXT_SIZES, DEFAULT_SETTINGS.textSize),
     eraNotation: pick(read('eraNotation'), ERA_VALUES, DEFAULT_SETTINGS.eraNotation),
+    usageCounts: pickBoolean(read('usageCounts'), DEFAULT_SETTINGS.usageCounts),
   };
 }
 

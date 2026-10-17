@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { BRAND, configuredChannels } from '../../config/brand';
+import { APP_VERSION, RELEASE, isBeta } from '../../config/release';
 
 export function SiteFooter() {
   const channels = configuredChannels();
@@ -11,6 +12,10 @@ export function SiteFooter() {
           <p className="mt-2 max-w-xl">
             Real events are presented with sources. Alternate outcomes are fiction, written to be internally
             consistent, never to predict what would have happened.
+          </p>
+          <p className="mt-2 text-xs" data-testid="build-label">
+            {isBeta ? 'Private beta' : 'Version'} {APP_VERSION}
+            {RELEASE.commit ? `, build ${RELEASE.commit}` : ''}
           </p>
         </div>
         <nav aria-label="Footer">

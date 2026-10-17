@@ -37,8 +37,9 @@ export function AboutPage() {
             Current limitations
           </h2>
           <ul className="prose-atlas mt-4 list-disc space-y-3 pl-5">
-            <li>This is an early development build. Only the Fall of Rome campaign can be opened.</li>
-            <li>Only the opening decisions are playable. The endings, interactive map, comparison view and Creator Mode are not built yet.</li>
+            <li>This is a private beta. Only the Fall of Rome campaign can be played, and saved games may be reset between beta versions.</li>
+            <li>The interactive map, the side-by-side comparison, shareable outcome cards and Creator Mode are not built yet.</li>
+            <li>The balance between the three endings is provisional and may change after the beta.</li>
             <li>
               Historical text is a draft awaiting independent review. Some events currently rely on tertiary
               sources, which are marked and will be corroborated with scholarship before release.

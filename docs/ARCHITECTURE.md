@@ -13,7 +13,7 @@
 | Icons | In-repo SVG set (`Icon.tsx`) | Fourteen icons do not justify a dependency. Swap for `lucide-react` later if the set grows; the component API stays the same. |
 | Fonts | Device fonts only | No download, no third-party request, no licence to track. Palatino-family serif fits the subject. Self-hosting an OFL font is a later polish option. |
 | Tests | Vitest + Testing Library + jsdom; Playwright | Unit and component tests share Vite's pipeline. Playwright runs end-to-end against the real production build (`vite preview`) in a desktop and a phone-sized browser, in CI. |
-| Hosting | Any static host (Cloudflare Pages recommended) | `dist/` is plain files. `_redirects` and `_headers` are included for Cloudflare. |
+| Hosting | Cloudflare Pages (free plan), prepared but not deployed | `dist/` is plain files. The build generates `_headers` and `robots.txt` for the release channel; no `_redirects` or `404.html`, so Pages serves the app for every route (SPA mode). See [Release and hosting](#release-and-hosting). |
 
 Runtime dependencies are only `react`, `react-dom` and `react-router`.
 
@@ -38,7 +38,10 @@ src/data        campaigns.ts — the catalog (single source of truth for titles,
                 scenarios/index.ts — campaign id → content registry
 src/types       Contracts: history, campaign, simulation (Phase 2), map (Phase 3), creator (Phase 5)
 src/lib         Dates and era notation, catalog lookups, data validation, small hooks
-src/config      Brand constants and (empty until supplied) channel links
+src/config      Brand constants, (empty until supplied) channel links, release.ts (channel, analytics
+                endpoint, feedback link, build commit, APP_VERSION)
+scripts/        release.mjs (shared build/deploy config: channel, CSP, _headers, robots), check-dist.mjs
+                (deployment check of dist/), both plain Node ESM
 ```
 
 ### Routes
@@ -63,7 +66,7 @@ Settings is a modal dialog available from every page, not a route.
 2. **Actual history is immutable.** `romeActualTimeline` is deep-frozen at load; a unit test proves writes throw. Alternate-history data will live in a separate dataset (Phase 2).
 3. **Data is validated.** `lib/validation.ts` checks source references, chronology, date precision, caveats on contested events and https-only URLs. It runs in the unit tests and logs in development builds. When scenarios move to JSON files in Phase 2, add runtime schema validation (Zod) at load.
 4. **Precision is never overstated.** Dates render at their recorded precision (`formatHistoricalDate`). The map area is an explicit placeholder rather than a decorative image.
-5. **No fake controls.** Unbuilt features are either absent or disabled with a visible reason (camera controls, unbuilt modes). Coming-soon campaigns have no button.
+5. **No fake controls.** Unbuilt features are absent or explained in text (the map placeholder has no controls; the Comparison tab explains it is not built and disables the year slider). Coming-soon campaigns have no button.
 6. **Playback is a pure reducer** (`timelinePlayback.ts`): deterministic, unit-tested, independent of animation timing. The same reducer will drive Creator Mode playback.
 7. **Settings are validated on read and write**, size-limited and read via own-property checks to rule out prototype pollution.
 
@@ -163,6 +166,34 @@ UI: `useSimulation` wraps the engine with a pre-commit selection (change your mi
 
 **Motion:** the seal and chart lines draw once via `.seal-draw`/`.chart-draw`, enabled only under `html[data-motion='full']`; under reduced motion everything is static. **Accessibility:** one `h1`, five `h2` sections with an on-page nav, charts as `role="img"` with plain-language summaries plus a table, the slider with `aria-valuetext`, a live readout, text labels on every badge (fiction/sourced, took effect/did not happen, ✓/✕ with screen-reader text), 44 px targets.
 
+## Release and hosting
+
+**Channels.** `VITE_RELEASE_CHANNEL` is `beta` (default) or `production`, read once in `scripts/release.mjs` (`resolveReleaseConfig`, which also validates `VITE_ANALYTICS_ENDPOINT` and `VITE_FEEDBACK_URL`; an invalid value stops the build). A Vite plugin in `vite.config.ts` writes `_headers` and `robots.txt` into `dist/` and, on beta, adds `<meta name="robots" content="noindex, nofollow">`. In the app, `src/config/release.ts` exposes the same values; the beta shows `BetaNotice` above the header on every page and a footer build label (`APP_VERSION`, kept equal to `package.json` by a test, plus the commit from `CF_PAGES_COMMIT_SHA` or `GITHUB_SHA`).
+
+**Headers** (generated, one `/*` rule and one `/assets/*` rule): CSP `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' [analytics origin]; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `X-Frame-Options: DENY`, `Cross-Origin-Opener-Policy: same-origin`, and on beta `X-Robots-Tag: noindex, nofollow`. Hashed assets: `Cache-Control: public, max-age=31536000, immutable`; HTML keeps Pages' default revalidation, so a new deploy is picked up on the next navigation.
+
+**Routing.** Pages serves `index.html` for any path without a file when the project has no top-level `404.html`. The app's own `NotFoundPage` handles unknown routes. Saves are origin-scoped `localStorage`, so they survive redeploys at the same address.
+
+**Outdated tabs.** A tab opened before a deploy may request a lazy chunk that no longer exists. `ErrorBoundary` recognises the browsers' dynamic-import failure messages (`isOutdatedBuildError`) and offers a reload instead of the generic error.
+
+**Deployment check.** `scripts/check-dist.mjs` (CI and `npm run check:dist`) fails on: a `404.html` or a `/* /index.html` rewrite; a missing or non-hashed entry script; robots meta, `_headers` or `robots.txt` not matching the channel; source maps or `.env` files; secret-like strings; files over 25 MiB or more than 20,000 files; an entry chunk over 160 kB gzipped; a missing build commit when the build machine provided one.
+
+**Emulation in CI.** After the normal Playwright run against `vite preview`, CI starts `wrangler pages dev dist` (Cloudflare's local Pages emulator; no account or token) and runs `tests/e2e/deployment.spec.ts` against it with `E2E_CLOUDFLARE=1`, which adds header assertions.
+
+### Usage counts (analytics)
+
+`src/lib/analytics.ts`, off unless the build sets `VITE_ANALYTICS_ENDPOINT` to a GoatCounter `/count` URL. No third-party script is loaded: the app sends one `fetch` GET per event (`no-cors`, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`, `keepalive`) with only `p` (event name), `t` (event title), `e=true` and a cache-busting `rnd`. Only the ten names in `ANALYTICS_EVENTS` can be sent:
+
+| Event | Sent when | Where |
+| --- | --- | --- |
+| `campaign-start` | Alternate History shows Decision 1 with nothing decided, once per new game in a page visit (a restored save in progress is not a start) | `WorkspacePage` |
+| `decision-1-complete`, `decision-3-complete` | The first / third decision is confirmed | `WorkspacePage` |
+| `campaign-complete` and `ending-<category>` | The fifth decision is confirmed and the ending is classified | `WorkspacePage` |
+| `replay-start` | "Replay your decisions" is opened on the ending page | `ReplayPanel` via `EndingExperience` |
+| `new-timeline-from-ending`, `new-timeline-from-workspace` | A confirmed new timeline from the ending page, or Start over in the workspace | `EndingExperience`, `WorkspacePage` |
+
+Nothing is sent when: no endpoint is configured; Settings → "Anonymous usage counts" is off (stored in `tat.settings`); `navigator.doNotTrack === '1'` or Global Privacy Control is on; or `navigator.webdriver` is true (automated browsers, including the test suites). No identifier, choice, resource value, save content or referrer is ever sent, and nothing is stored on the device for analytics. `trackEvent` never throws. The CSP's `connect-src` gains the endpoint origin only when configured.
+
 ## Historical Animation Studio (future Creator Mode) — constraints kept now
 
 Creator Mode should grow into a reusable studio for animated historical maps, camera moves, timeline playback and vertical/horizontal recording layouts, without paid rendering APIs. Current code keeps that path open:
@@ -190,3 +221,5 @@ Creator Mode should grow into a reusable studio for animated historical maps, ca
 | Map library choice (SVG/D3 vs MapLibre) affects mobile performance | Prototype both against real data before committing; the workspace chunk is already split so the map code will not slow the landing page. |
 | Tailwind arbitrary values (`text-[clamp(...)]`) are verbose | Acceptable for now; promote repeated ones to tokens if they spread. |
 | Dependency versions resolve at install time | Commit `package-lock.json` after the first `npm install`. |
+| Cloudflare changes Pages behaviour or limits | Only standard files (`_headers`, `robots.txt`) are used; the build is portable to any static host; the deployment check and emulator tests flag routing regressions. |
+| `wrangler@4` in CI resolves to a newer minor version | It is a test tool only; the emulator step reports its version. Pin an exact version if it starts to vary. |

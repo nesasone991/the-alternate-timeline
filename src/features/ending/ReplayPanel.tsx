@@ -16,12 +16,15 @@ export function ReplayPanel({
   points,
   endingTitle,
   era,
+  onStart,
 }: {
   scenario: AlternateScenario;
   events: readonly StoryEvent[];
   points: readonly ResourcePoint[];
   endingTitle: string;
   era: EraNotation;
+  /** Called when the reader opens the replay (for anonymous usage counts). */
+  onStart?: () => void;
 }) {
   const [index, setIndex] = useState<number | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -41,7 +44,10 @@ export function ReplayPanel({
           Step through your campaign one event at a time: each decision, each consequence as it came due, and the ending.
           Replaying only reads your history; your saved campaign stays exactly as it is.
         </p>
-        <button ref={startRef} type="button" className="btn btn-secondary mt-4" onClick={() => setIndex(0)}>
+        <button ref={startRef} type="button" className="btn btn-secondary mt-4" onClick={() => {
+            onStart?.();
+            setIndex(0);
+          }}>
           Replay your decisions
         </button>
       </div>

@@ -124,7 +124,6 @@ function NotBuilt({ children }: { children: ReactNode }) {
 function SimulationSections({ scenario, state }: { scenario: AlternateScenario; state: SimulationState }) {
   const last = state.records[state.records.length - 1];
   const arrived = consequencesResolvedAt(state, state.currentEventId);
-  const written = scenario.nodes.filter((node) => node.kind === 'decision').length;
   return (
     <>
       <Section title="Decisions" badge={<FictionBadge />}>
@@ -147,9 +146,6 @@ function SimulationSections({ scenario, state }: { scenario: AlternateScenario; 
             })}
           </ol>
         )}
-        <p className="mt-3 font-sans text-xs text-parchment-muted">
-          {written} of {scenario.plannedDecisionCount} decisions written so far.
-        </p>
       </Section>
 
       <Section title="Consequences">

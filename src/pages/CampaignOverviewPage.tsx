@@ -74,7 +74,7 @@ export function CampaignOverviewPage() {
             Open the workspace
           </Link>
           <p className="font-sans text-sm text-parchment-muted">
-            Development preview: the sourced timeline and the opening decisions work; map and comparison are not built yet.
+            The sourced timeline and all five decisions work. The map and the side-by-side comparison come later.
           </p>
         </div>
       </PageHeader>

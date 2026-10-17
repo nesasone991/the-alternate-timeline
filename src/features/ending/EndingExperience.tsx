@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { RELEASE } from '../../config/release';
 import type { CampaignContent } from '../../data/scenarios';
+import { trackEvent } from '../../lib/analytics';
 import { workspacePath } from '../../lib/catalog';
 import type { EraNotation } from '../../lib/dates';
 import type { CampaignSummary } from '../../types/campaign';
@@ -74,6 +76,7 @@ export function EndingExperience({
 
   const restart = () => {
     clearSave(scenario);
+    trackEvent('new-timeline-from-ending');
     setConfirming(false);
     navigate(`${workspacePath(campaign.id)}?mode=alternate`);
   };
@@ -163,7 +166,14 @@ export function EndingExperience({
             Replay and restart
           </h2>
           <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-            <ReplayPanel scenario={scenario} events={events} points={points} endingTitle={report.title} era={era} />
+            <ReplayPanel
+              scenario={scenario}
+              events={events}
+              points={points}
+              endingTitle={report.title}
+              era={era}
+              onStart={() => trackEvent('replay-start')}
+            />
             <div>
               <h3 className="text-xl text-parchment">Start a new timeline</h3>
               <p className="mt-2">
@@ -173,6 +183,21 @@ export function EndingExperience({
               <button type="button" className="btn btn-secondary mt-4" onClick={() => setConfirming(true)}>
                 Start a new timeline
               </button>
+              {RELEASE.feedbackUrl ? (
+                <div className="mt-10 border-t border-rule-soft pt-6" data-testid="ending-feedback">
+                  <h3 className="text-xl text-parchment">Tell us how it went</h3>
+                  <p className="mt-2">Six short questions, about two minutes. No personal details are asked for.</p>
+                  <a
+                    href={RELEASE.feedbackUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary mt-4"
+                  >
+                    Answer the beta questionnaire
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>

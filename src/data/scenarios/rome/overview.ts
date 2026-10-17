@@ -32,7 +32,7 @@ export const romeModes: readonly ModeAvailability[] = [
     description:
       'Advise the Western court at five turning points between 455 and 476. Each decision changes your resources, closes some options and opens others.',
     available: true,
-    limitation: 'Development preview: all five decisions are playable and every campaign ends in one of three endings. The full ending screen comes next.',
+    limitation: 'All five decisions are playable. Every campaign ends in one of three endings, explained on its own ending page.',
   },
   {
     mode: 'comparison',
@@ -40,7 +40,7 @@ export const romeModes: readonly ModeAvailability[] = [
     description:
       'Place your alternate timeline beside the real one at the same date, with fiction clearly marked apart from sourced history.',
     available: false,
-    limitation: 'Not built yet. Comparison needs the full campaign and the map.',
+    limitation: 'Not built yet. For now, the ending page sets your outcome beside the sourced events of 474–480.',
   },
 ];
 
@@ -54,16 +54,14 @@ export const romeFeatures: readonly CampaignFeature[] = [
   {
     id: 'decisions',
     title: 'Five strategic decisions',
-    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476. All five are playable, with three possible endings.',
-    status: 'preview',
-    plannedPhase: 2,
+    description: 'Fiscal policy, border defence, North Africa, legitimacy and the final crisis of 475–476.',
+    status: 'available',
   },
   {
     id: 'endings',
     title: 'Three distinct endings',
-    description: 'Imperial continuity, negotiated transformation or fragmentation — each explained by the choices that led there.',
-    status: 'planned',
-    plannedPhase: 2,
+    description: 'Imperial Survival, Fragmented Survival or Imperial Collapse, each explained by the choices that led there and set beside what really happened.',
+    status: 'available',
   },
   {
     id: 'map',

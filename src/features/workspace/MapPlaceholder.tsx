@@ -1,4 +1,3 @@
-import { Icon } from '../../components/ui/Icon';
 import { formatYear, type EraNotation } from '../../lib/dates';
 import type { WorkspaceMode } from '../../types/simulation';
 
@@ -21,13 +20,13 @@ export function MapPlaceholder({ year, era, mode, positionLabel }: MapPlaceholde
       className="relative flex h-full min-h-64 flex-col justify-between border border-dashed border-rule/60 bg-night/60 p-5 sm:p-6"
     >
       <div>
-        <p className="font-sans text-xs font-semibold text-gold">Development preview</p>
+        <p className="font-sans text-xs font-semibold text-gold">Coming in a later version</p>
         <h2 id="map-placeholder-title" className="mt-1 text-xl text-parchment">
           Interactive map not built yet
         </h2>
         <p className="mt-2 max-w-md text-[0.9375rem] text-parchment-muted">
           This area will hold the historical map: sourced or clearly labelled schematic snapshots, with uncertain
-          borders marked as uncertain. Planned for phase 3.
+          borders marked as uncertain. Until then, the timeline and the decisions carry the story.
         </p>
       </div>
 
@@ -38,19 +37,6 @@ export function MapPlaceholder({ year, era, mode, positionLabel }: MapPlaceholde
         <span className="inscription text-[clamp(2.5rem,7vw,4.5rem)] text-parchment">{formatYear(year, era)}</span>
       </p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="control-label mr-1">Camera</span>
-        <button type="button" className="icon-btn" disabled aria-label="Zoom in (available when the map is built)">
-          <Icon name="zoom-in" />
-        </button>
-        <button type="button" className="icon-btn" disabled aria-label="Zoom out (available when the map is built)">
-          <Icon name="zoom-out" />
-        </button>
-        <button type="button" className="icon-btn" disabled aria-label="Recenter (available when the map is built)">
-          <Icon name="recenter" />
-        </button>
-        <span className="control-label">Available when the map is built.</span>
-      </div>
     </section>
   );
 }

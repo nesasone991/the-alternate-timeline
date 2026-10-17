@@ -13,15 +13,17 @@ Labels: **Must** (MVP blocker), **Should** (MVP if time allows), **Later** (afte
 | 7 | Local save/load, reset, shareable outcome card | Must | 2 (save) / 4 (card) | 🟡 Versioned autosave, restore, reset (with confirmation from the ending) and damaged-save recovery done; read-only replay of a finished campaign; share card not started |
 | 8 | Creator Mode: clean playback, 9:16/16:9 guides, speed, seek, bookmarks | Must | 5 | ⬜ Frame and speed types exist; playback reducer reusable |
 | 9 | Mobile-responsive, keyboard-accessible core flow; low-power fallback | Must | 1 → ongoing | 🟡 Done for Phase 1 screens |
-| 10 | Tests, build checks, attribution, error states, privacy note, deployment guide | Must | 1 → ongoing | 🟡 Present for Phase 1 scope |
+| 10 | Tests, build checks, attribution, error states, privacy note, deployment guide | Must | 1 → ongoing | 🟡 Present for everything built; deployment check and Pages emulator tests in CI; privacy page and Cloudflare Pages guide written for the beta; real-host checks pending deployment |
 | — | Settings: motion, ambient animation, sound preference, text size, year notation | Must (Phase 1 brief) | 1 | ✅ |
 | — | Optional D6 recovery decision | Should | 2 | ⬜ |
 | — | Export/import save file | Should | 2 | ⬜ (save format is ready for it) |
 | — | Swipe overlay in comparison | Should | 4 | ⬜ |
 | — | Self-hosted OFL display font | Should | polish | ⬜ |
-| — | Playwright E2E suite in repo | Should | 2 | ✅ 23 specs × desktop + mobile (including each ending, replay, restart, widths, keyboard, reduced motion), in CI against the production build |
+| — | Playwright E2E suite in repo | Should | 2 | ✅ 38 specs × desktop + mobile (including each ending, replay, restart, widths, keyboard, reduced motion, direct visits and reloads of every route), in CI against the production build, plus the deployment spec against Cloudflare's Pages emulator |
 | — | CI on every push (GitHub Actions) | Should | 2 | ✅ |
 | — | Napoleon 1815, Viking Age 865 campaigns | Later | — | Concept cards only |
-| — | Accounts, cloud saves, payments, ads, analytics, AI-generated content, MP4 export, 3D globe | Later / not MVP | — | Excluded by Blueprint §2.2 |
+| — | Private beta release: labelled beta build, `noindex`, Cloudflare Pages guide, questionnaire | Should (owner request, session 8) | beta | ✅ Prepared, not deployed |
+| — | Privacy-conscious usage counts (ten anonymous events, opt-out, off unless configured) | Should (owner request, session 8; Blueprint §1.4) | beta | ✅ Built and tested; not yet connected to a GoatCounter site |
+| — | Accounts, cloud saves, payments, ads, AI-generated content, MP4 export, 3D globe | Later / not MVP | — | Excluded by Blueprint §2.2 |
 
 Nothing in the Blueprint has been removed; items not built are listed above.

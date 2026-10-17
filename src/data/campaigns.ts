@@ -12,9 +12,9 @@ export const campaigns: readonly CampaignSummary[] = [
     keyYear: 476,
     period: { startYear: 455, endYear: 476, approximate: true },
     description: 'Witness the collapse of the Western Roman Empire, then take control of its fate.',
-    status: 'preview',
-    difficulty: 'Set after balancing',
-    estimatedPlayTime: '8–15 minutes (target)',
+    status: 'playable',
+    difficulty: 'Challenging: few paths keep the empire whole',
+    estimatedPlayTime: 'About 10–15 minutes (estimate)',
     disclaimer: 'Real events are sourced. Alternate outcomes are fiction and do not predict what would have happened.',
   },
   {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { BetaNotice } from '../components/layout/BetaNotice';
 import { SiteFooter } from '../components/layout/SiteFooter';
 import { SiteHeader } from '../components/layout/SiteHeader';
 import { SettingsDialog } from '../features/settings/SettingsDialog';
@@ -35,6 +36,7 @@ export function AppLayout() {
         Skip to content
       </a>
       <div className="flex min-h-dvh flex-col">
+        <BetaNotice />
         <SiteHeader />
         <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
           <Outlet />

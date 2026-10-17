@@ -10,3 +10,6 @@ playwright-report
 test-results
 playwright-results.json
 vitest-results.json
+playwright-cloudflare.json
+dist-check.txt
+.wrangler

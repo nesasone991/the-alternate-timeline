@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppRoutes } from '../../src/app/App';
 import { SETTINGS_STORAGE_KEY } from '../../src/features/settings/settings';
 import { __resetSettingsStoreForTests } from '../../src/features/settings/settingsStore';
+import { __resetAnalyticsForTests, __setAnalyticsForTests } from '../../src/lib/analytics';
 
 function renderAt(path: string) {
   return render(
@@ -20,6 +21,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  __resetAnalyticsForTests();
 });
 
 describe('home page', () => {
@@ -227,5 +229,126 @@ describe('settings', () => {
     const stored = JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY) ?? '{}') as { eraNotation?: string };
     expect(stored.eraNotation).toBe('CE');
     expect(screen.getByText('476 CE', { selector: 'p' })).toBeTruthy();
+  });
+});
+
+describe('private beta', () => {
+  it('labels every page as a private beta with a build label', () => {
+    for (const path of ['/', '/privacy', '/campaigns/fall-of-rome']) {
+      renderAt(path);
+      expect(screen.getByTestId('beta-notice').textContent).toContain('Private beta.');
+      expect(screen.getByTestId('build-label').textContent).toMatch(/^Private beta \d+\.\d+\.\d+/);
+      cleanup();
+    }
+  });
+
+  it('explains on the privacy page exactly what is counted, and that nothing is sent in this build', () => {
+    renderAt('/privacy');
+    expect(screen.getByTestId('analytics-status').textContent).toContain('not set up on this version');
+    const events = within(screen.getByTestId('analytics-events')).getAllByRole('listitem');
+    expect(events.map((item) => item.textContent)).toContain('Decision 3 was completed');
+    expect(events).toHaveLength(10);
+    // No opt-out checkbox when nothing can be sent.
+    expect(screen.queryByRole('checkbox', { name: /usage counts/ })).toBeNull();
+  });
+});
+
+describe('usage counts', () => {
+  const ACTIVE = { endpoint: 'https://example.goatcounter.com/count', allowedBySettings: true, doNotTrack: false, automated: false };
+  const SAVE = 'tat.save.rome-alternate';
+  let sent: string[] = [];
+  let urls: string[] = [];
+  beforeEach(() => {
+    sent = [];
+    urls = [];
+    __setAnalyticsForTests({
+      transport: (url, event) => {
+        urls.push(url);
+        sent.push(event);
+      },
+      environment: ACTIVE,
+    });
+  });
+
+  const decide = (option: RegExp) => {
+    fireEvent.click(screen.getByRole('radio', { name: option }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm decision' }));
+  };
+
+  it('counts a start, decisions 1 and 3, the completion and the ending category, without any choice', async () => {
+    renderAt('/campaigns/fall-of-rome/workspace?mode=alternate');
+    await screen.findByRole('heading', { name: 'Fiscal survival' });
+    expect(sent).toEqual(['campaign-start']);
+    decide(/Pay the armies first/);
+    expect(sent).toEqual(['campaign-start', 'decision-1-complete']);
+    decide(/Concentrate the armies in Italy/);
+    decide(/Give up Africa and fortify what remains/);
+    expect(sent).toEqual(['campaign-start', 'decision-1-complete', 'decision-3-complete']);
+    decide(/Strike a bargain with the regional powers/);
+    decide(/Defend the imperial office by force/);
+    expect(sent).toEqual([
+      'campaign-start',
+      'decision-1-complete',
+      'decision-3-complete',
+      'campaign-complete',
+      'ending-fragmented-survival',
+    ]);
+    // Requests carry the event only: no choice, resource or save content.
+    for (const url of urls) {
+      expect(url).toMatch(/^https:\/\/example\.goatcounter\.com\/count\?p=[a-z0-9-]+&t=[^&]+&e=true&rnd=[a-z0-9]+$/);
+      expect(url).not.toMatch(/pay-the-armies|hold-italy|defend-imperial-office|economy|legitimacy/);
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+    expect(sent.slice(5).sort()).toEqual(['campaign-start', 'new-timeline-from-workspace']);
+  });
+
+  it('does not count a restored campaign as a new start', async () => {
+    window.localStorage.setItem(
+      SAVE,
+      JSON.stringify({
+        format: 'the-alternate-timeline/save',
+        formatVersion: 1,
+        scenarioId: 'rome-alternate',
+        scenarioVersion: 5,
+        savedAt: '2026-10-17T10:00:00.000Z',
+        choices: ['pay-the-armies', 'hold-italy'],
+      }),
+    );
+    renderAt('/campaigns/fall-of-rome/workspace?mode=alternate');
+    await screen.findByRole('heading', { name: 'North African policy' });
+    expect(sent).toEqual([]);
+  });
+
+  it('counts replay and a new timeline from the ending page', async () => {
+    window.localStorage.setItem(
+      SAVE,
+      JSON.stringify({
+        format: 'the-alternate-timeline/save',
+        formatVersion: 1,
+        scenarioId: 'rome-alternate',
+        scenarioVersion: 5,
+        savedAt: '2026-10-17T10:00:00.000Z',
+        choices: ['pay-the-armies', 'hold-italy', 'treaty-with-gaiseric', 'bargain-with-regions', 'defend-imperial-office'],
+      }),
+    );
+    renderAt('/campaigns/fall-of-rome/ending');
+    await screen.findByRole('heading', { level: 1, name: 'Imperial Survival' });
+    expect(sent).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Replay your decisions' }));
+    expect(sent).toEqual(['replay-start']);
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new timeline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Erase it and start again' }));
+    await screen.findByRole('heading', { name: 'Fiscal survival' });
+    expect(sent).toEqual(['replay-start', 'new-timeline-from-ending', 'campaign-start']);
+  });
+
+  it('sends nothing when the build has no analytics endpoint', async () => {
+    __setAnalyticsForTests({ environment: null });
+    renderAt('/campaigns/fall-of-rome/workspace?mode=alternate');
+    await screen.findByRole('heading', { name: 'Fiscal survival' });
+    // This test build has no endpoint, so the real environment never sends.
+    decide(/Pay the armies first/);
+    expect(sent).toEqual([]);
   });
 });

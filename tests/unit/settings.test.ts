@@ -34,6 +34,12 @@ describe('parseSettings', () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
+  it('allows usage counts by default and keeps an opt-out', () => {
+    expect(DEFAULT_SETTINGS.usageCounts).toBe(true);
+    expect(parseSettings(JSON.stringify({ usageCounts: false })).usageCounts).toBe(false);
+    expect(parseSettings(JSON.stringify({ usageCounts: 'no' })).usageCounts).toBe(true);
+  });
+
   it('rejects oversized payloads', () => {
     expect(parseSettings(JSON.stringify({ eraNotation: 'CE', pad: 'x'.repeat(5000) }))).toEqual(DEFAULT_SETTINGS);
   });
